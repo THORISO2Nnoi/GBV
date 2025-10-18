@@ -9,21 +9,29 @@ const contactSchema = new mongoose.Schema({
   },
   name: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   phone: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   email: {
     type: String,
-    required: true
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
   },
   password: {
     type: String,
     required: true
   },
-  relationship: String,
+  relationship: {
+    type: String,
+    default: 'Trusted Contact'
+  },
   isVerified: {
     type: Boolean,
     default: false
@@ -43,8 +51,8 @@ contactSchema.pre('save', async function(next) {
   next();
 });
 
-contactSchema.methods.correctPassword = async function(candidatePassword, contactPassword) {
-  return await bcrypt.compare(candidatePassword, contactPassword);
+contactSchema.methods.correctPassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 module.exports = mongoose.model('Contact', contactSchema);

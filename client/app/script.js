@@ -1,4 +1,8 @@
-const API_BASE = 'http://localhost:5000/api';
+// client/app/script.js
+const API_BASE = window.location.hostname.includes('localhost') 
+  ? 'http://localhost:5000/api' 
+  : '/api';
+
 let socket;
 let currentUser = null;
 let countdownInterval;
@@ -149,14 +153,114 @@ function handleLogout() {
 }
 
 function initializeSocket() {
-    socket = io('http://localhost:5000');
+    // Use relative path for socket connection in production
+    const socketUrl = window.location.hostname.includes('localhost') 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+    
+    socket = io(socketUrl);
     
     socket.emit('join-room', currentUser.id);
     
     socket.on('alert-status-update', (data) => {
         console.log('Alert update:', data);
-        // Handle alert status updates
+        showAlert(`Trusted contact responded: ${data.status}`);
     });
+
+    socket.on('connect', () => {
+        console.log('Connected to server');
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Disconnected from server');
+    });
+}
+
+function showAlert(message) {
+    // Create a temporary alert notification
+    const alertDiv = document.createElement('div');
+    alertDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 5px;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    `;
+    alertDiv.textContent = message;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        document.body.removeChild(alertDiv);
+    }, 5000);
+}
+
+function handleNavClick(e) {
+    const screen = this.getAttribute('data-screen');
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    this.classList.add('active');
+    
+    // Handle navigation to different screens
+    switch(screen) {
+        case 'home':
+            showScreen('app');
+            break;
+        case 'chat':
+            showChatScreen();
+            break;
+        case 'contacts':
+            showContactsScreen();
+            break;
+        case 'profile':
+            showProfileScreen();
+            break;
+    }
+}
+
+function handleQuickAction() {
+    const screen = this.getAttribute('data-screen');
+    switch(screen) {
+        case 'contacts-screen':
+            showContactsScreen();
+            break;
+        case 'safety-screen':
+            showSafetyScreen();
+            break;
+        case 'resources-screen':
+            showResourcesScreen();
+            break;
+        case 'evidence-screen':
+            showEvidenceScreen();
+            break;
+    }
+}
+
+function showContactsScreen() {
+    showScreen('contacts-screen');
+    loadContacts();
+}
+
+function showChatScreen() {
+    alert('Safe Chat feature would open here. In production, this would connect to trained counselors.');
+}
+
+function showProfileScreen() {
+    alert('Profile settings would appear here.');
+}
+
+function showSafetyScreen() {
+    alert('Safety planning tools would appear here.');
+}
+
+function showResourcesScreen() {
+    alert('Local resources and helplines would appear here.');
+}
+
+function showEvidenceScreen() {
+    alert('Secure evidence vault would open here.');
 }
 
 function showEmergencyScreen() {
@@ -185,6 +289,7 @@ function startCountdown() {
 function cancelEmergency() {
     clearInterval(countdownInterval);
     showScreen('app');
+    showAlert('Emergency cancelled');
 }
 
 function sendEmergencyNow() {
@@ -209,7 +314,8 @@ async function sendEmergencyAlert() {
         });
 
         if (response.ok) {
-            alert('Emergency alert sent to your trusted contacts!');
+            const alertData = await response.json();
+            showAlert('Emergency alert sent to your trusted contacts!');
             showScreen('app');
             
             // Notify via socket
@@ -218,11 +324,12 @@ async function sendEmergencyAlert() {
                     userId: currentUser.id,
                     userName: currentUser.name,
                     location: location,
-                    trustedContacts: [] // Would be populated from user data
+                    trustedContacts: alertData.trustedContactsNotified || []
                 });
             }
         } else {
-            alert('Failed to send emergency alert');
+            const error = await response.json();
+            alert('Failed to send emergency alert: ' + (error.message || 'Unknown error'));
         }
     } catch (error) {
         alert('Error sending alert: ' + error.message);
@@ -237,16 +344,30 @@ function getCurrentLocation() {
                 const lng = position.coords.longitude;
                 document.getElementById('location-text').textContent = 
                     `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+                
+                // Reverse geocoding would be implemented here in production
+                getAddressFromCoordinates(lat, lng);
             },
             (error) => {
                 document.getElementById('location-text').textContent = 
                     'Location access denied. Using last known location.';
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
             }
         );
     } else {
         document.getElementById('location-text').textContent = 
             'Geolocation not supported by browser';
     }
+}
+
+function getAddressFromCoordinates(lat, lng) {
+    // This would be implemented with a geocoding service in production
+    // For now, we'll just use the coordinates
+    console.log('Coordinates:', lat, lng);
 }
 
 async function loadEmergencyContacts() {
@@ -260,15 +381,20 @@ async function loadEmergencyContacts() {
         if (response.ok) {
             const contacts = await response.json();
             const contactsContainer = document.getElementById('emergency-contacts');
-            contactsContainer.innerHTML = contacts.map(contact => 
-                `<div class="contact-item">
-                    <span>${contact.name}</span>
-                    <span>${contact.relationship}</span>
-                </div>`
-            ).join('');
+            if (contacts.length > 0) {
+                contactsContainer.innerHTML = contacts.map(contact => 
+                    `<div class="contact-item">
+                        <span>${contact.name}</span>
+                        <span>${contact.relationship || 'Trusted Contact'}</span>
+                    </div>`
+                ).join('');
+            } else {
+                contactsContainer.innerHTML = '<p>No trusted contacts added yet.</p>';
+            }
         }
     } catch (error) {
         console.error('Error loading contacts:', error);
+        document.getElementById('emergency-contacts').innerHTML = '<p>Error loading contacts</p>';
     }
 }
 
@@ -278,6 +404,7 @@ function showAddContactModal() {
 
 function hideAddContactModal() {
     document.getElementById('add-contact-modal').classList.remove('active');
+    document.getElementById('add-contact-form').reset();
 }
 
 async function handleAddContact(e) {
@@ -298,11 +425,18 @@ async function handleAddContact(e) {
         });
 
         if (response.ok) {
+            const data = await response.json();
             hideAddContactModal();
-            document.getElementById('add-contact-form').reset();
+            showAlert(`Contact ${name} added successfully!`);
             loadContacts();
+            
+            // Show temporary credentials (in production, this would be emailed)
+            if (data.tempPassword) {
+                alert(`Temporary password for ${name}: ${data.tempPassword}\n\nShare this with your contact so they can login.`);
+            }
         } else {
-            alert('Failed to add contact');
+            const error = await response.json();
+            alert('Failed to add contact: ' + (error.message || 'Unknown error'));
         }
     } catch (error) {
         alert('Error adding contact: ' + error.message);
@@ -320,44 +454,80 @@ async function loadContacts() {
         if (response.ok) {
             const contacts = await response.json();
             const contactsList = document.getElementById('contacts-list');
-            contactsList.innerHTML = contacts.map(contact => 
-                `<div class="contact-item">
-                    <div>
-                        <strong>${contact.name}</strong>
-                        <div>${contact.relationship}</div>
-                        <div>${contact.phone}</div>
-                    </div>
-                    <button class="btn-secondary" onclick="deleteContact('${contact._id}')">Remove</button>
-                </div>`
-            ).join('');
+            if (contacts.length > 0) {
+                contactsList.innerHTML = contacts.map(contact => 
+                    `<div class="contact-item">
+                        <div>
+                            <strong>${contact.name}</strong>
+                            <div>${contact.relationship || 'Trusted Contact'}</div>
+                            <div>${contact.phone}</div>
+                            <div>${contact.email}</div>
+                            <div style="font-size: 0.8rem; color: ${contact.isVerified ? 'green' : 'orange'};">
+                                ${contact.isVerified ? '✅ Verified' : '⏳ Pending verification'}
+                            </div>
+                        </div>
+                        <button class="btn-secondary" onclick="deleteContact('${contact._id}')">Remove</button>
+                    </div>`
+                ).join('');
+            } else {
+                contactsList.innerHTML = '<p style="text-align: center; padding: 2rem;">No trusted contacts added yet.</p>';
+            }
         }
     } catch (error) {
         console.error('Error loading contacts:', error);
+        document.getElementById('contacts-list').innerHTML = '<p>Error loading contacts</p>';
     }
 }
 
-function handleNavClick(e) {
-    const screen = this.getAttribute('data-screen');
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    this.classList.add('active');
-    // Handle navigation to different screens
-}
+async function deleteContact(contactId) {
+    if (confirm('Are you sure you want to remove this trusted contact?')) {
+        try {
+            const response = await fetch(`${API_BASE}/contacts/${contactId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('gbv_token')}`
+                }
+            });
 
-function handleQuickAction() {
-    const screen = this.getAttribute('data-screen');
-    // Handle quick action navigation
+            if (response.ok) {
+                showAlert('Contact removed successfully');
+                loadContacts();
+            } else {
+                alert('Failed to remove contact');
+            }
+        } catch (error) {
+            alert('Error removing contact: ' + error.message);
+        }
+    }
 }
 
 function toggleFakeMode() {
     const btn = document.getElementById('fake-mode-btn');
     if (btn.textContent === 'Activate Calendar Mode') {
+        // Create fake calendar interface
         document.body.innerHTML = `
-            <div style="padding: 2rem; text-align: center;">
-                <h2>October 2023</h2>
-                <div style="margin: 2rem 0;">
-                    <p>Tap and hold any date to access safety features</p>
+            <div style="padding: 2rem; text-align: center; background: white; min-height: 100vh;">
+                <h2 style="color: #8B008B; margin-bottom: 2rem;">October 2023</h2>
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin: 2rem 0;">
+                    <div style="font-weight: bold; padding: 10px;">S</div>
+                    <div style="font-weight: bold; padding: 10px;">M</div>
+                    <div style="font-weight: bold; padding: 10px;">T</div>
+                    <div style="font-weight: bold; padding: 10px;">W</div>
+                    <div style="font-weight: bold; padding: 10px;">T</div>
+                    <div style="font-weight: bold; padding: 10px;">F</div>
+                    <div style="font-weight: bold; padding: 10px;">S</div>
+                    ${Array.from({length: 35}, (_, i) => 
+                        `<div style="padding: 15px; border: 1px solid #eee; border-radius: 5px; cursor: pointer; 
+                            ${i >= 3 && i < 34 ? 'background: #f9f9f9;' : 'color: #ccc;'}">
+                         ${i >= 3 && i < 34 ? i - 2 : ''}
+                         </div>`
+                    ).join('')}
                 </div>
-                <button onclick="location.reload()" style="padding: 1rem 2rem; background: #8B008B; color: white; border: none; border-radius: 8px;">
+                <p style="margin-top: 2rem; font-size: 0.9rem; color: #666;">
+                    📅 Regular Calendar App<br>
+                    <small>Tap and hold any date for 3 seconds to access safety features</small>
+                </p>
+                <button onclick="location.reload()" style="margin-top: 2rem; padding: 1rem 2rem; background: #8B008B; color: white; border: none; border-radius: 8px; cursor: pointer;">
                     Return to Safety App
                 </button>
             </div>
@@ -366,6 +536,11 @@ function toggleFakeMode() {
 }
 
 async function loadUserData() {
-    document.getElementById('user-name').textContent = currentUser.name;
-    loadContacts();
+    if (currentUser) {
+        document.getElementById('user-name').textContent = currentUser.name;
+        loadContacts();
+    }
 }
+
+// Make functions globally available for HTML onclick events
+window.deleteContact = deleteContact;

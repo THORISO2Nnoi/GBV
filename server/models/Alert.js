@@ -12,11 +12,13 @@ const alertSchema = new mongoose.Schema({
     default: 'emergency'
   },
   location: {
-    latitude: Number,
-    longitude: Number,
-    address: String
+    type: String,
+    default: 'Location not specified'
   },
-  message: String,
+  message: {
+    type: String,
+    default: 'Emergency assistance needed'
+  },
   status: {
     type: String,
     enum: ['active', 'responded', 'resolved', 'cancelled'],
@@ -24,8 +26,8 @@ const alertSchema = new mongoose.Schema({
   },
   trustedContactsNotified: [{
     contactId: mongoose.Schema.Types.ObjectId,
-    notifiedAt: Date,
-    responded: Boolean
+    notifiedAt: { type: Date, default: Date.now },
+    responded: { type: Boolean, default: false }
   }],
   authoritiesNotified: {
     type: Boolean,
@@ -34,7 +36,7 @@ const alertSchema = new mongoose.Schema({
   responseUpdates: [{
     contactId: mongoose.Schema.Types.ObjectId,
     action: String,
-    timestamp: Date,
+    timestamp: { type: Date, default: Date.now },
     notes: String
   }],
   resolvedAt: Date,

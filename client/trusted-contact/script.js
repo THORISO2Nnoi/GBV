@@ -1,4 +1,8 @@
-const API_BASE = 'http://localhost:5000/api';
+// client/trusted-contact/script.js
+const API_BASE = window.location.hostname.includes('localhost') 
+  ? 'http://localhost:5000/api' 
+  : '/api';
+
 let socket;
 let currentContact = null;
 
@@ -63,6 +67,7 @@ function showContactInterface() {
         <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
             <div>Logged in as: <strong>${currentContact.name}</strong></div>
             <div>Trusted contact for: <strong>${currentContact.userName}</strong></div>
+            <div>Relationship: <strong>${currentContact.relationship || 'Trusted Contact'}</strong></div>
             <button onclick="contactLogout()" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 5px; cursor: pointer;">
                 Logout
             </button>
@@ -91,11 +96,11 @@ async function loadContactAlerts() {
             const alerts = await response.json();
             displayAlerts(alerts);
         } else {
-            document.getElementById('no-alerts').style.display = 'block';
+            showNoAlerts();
         }
     } catch (error) {
         console.error('Error loading alerts:', error);
-        document.getElementById('no-alerts').style.display = 'block';
+        showNoAlerts();
     }
 }
 
@@ -104,8 +109,7 @@ function displayAlerts(alerts) {
     const noAlerts = document.getElementById('no-alerts');
     
     if (alerts.length === 0) {
-        noAlerts.style.display = 'block';
-        alertContainer.innerHTML = '';
+        showNoAlerts();
         return;
     }
     
@@ -116,6 +120,7 @@ function displayAlerts(alerts) {
 function createAlertHTML(alert) {
     const user = alert.userId;
     const alertTime = new Date(alert.createdAt).toLocaleString();
+    const location = alert.location || 'Location not available';
     
     return `
         <div class="alert-item" style="margin-bottom: 2rem; border: 2px solid var(--danger); border-radius: 15px; overflow: hidden;">
@@ -129,15 +134,15 @@ function createAlertHTML(alert) {
                     <div class="user-avatar">${user.name.charAt(0)}</div>
                     <div class="user-details">
                         <h3>${user.name}</h3>
-                        <p>Your ${currentContact.relationship}</p>
+                        <p>Your ${currentContact.relationship || 'trusted contact'}</p>
                         <div class="alert-time">Alert received: ${alertTime}</div>
                     </div>
                 </div>
                 
-                ${alert.location ? `
                 <div class="info-card">
                     <h3><span class="info-icon">📍</span> Location</h3>
-                    <p><strong>${alert.location.address || alert.location}</strong></p>
+                    <p><strong>${location}</strong></p>
+                    
                     <div class="location-map">
                         <div class="map-marker" style="top: 45%; left: 60%;"></div>
                         <div style="text-align: center;">
@@ -146,7 +151,6 @@ function createAlertHTML(alert) {
                         </div>
                     </div>
                 </div>
-                ` : ''}
                 
                 ${alert.message ? `
                 <div class="info-card">
@@ -160,7 +164,7 @@ function createAlertHTML(alert) {
                         <span class="btn-icon">📞</span>
                         Call ${user.name}
                     </button>
-                    <button class="action-btn secondary" onclick="contactAuthorities('${user.name}', '${alert.location}')">
+                    <button class="action-btn secondary" onclick="contactAuthorities('${user.name}', '${location}')">
                         <span class="btn-icon">🚓</span>
                         Contact Authorities
                     </button>
@@ -195,6 +199,21 @@ function createAlertHTML(alert) {
                             <div style="font-size: 0.8rem; color: #666;">${alertTime}</div>
                         </div>
                     </div>
+                    
+                    ${alert.responseUpdates && alert.responseUpdates.length > 0 ? 
+                        alert.responseUpdates.map(update => `
+                            <div class="status-item">
+                                <div class="status-icon contacted">✅</div>
+                                <div>
+                                    <strong>${update.action}</strong>
+                                    <div>${update.notes || 'No additional notes'}</div>
+                                    <div style="font-size: 0.8rem; color: #666;">
+                                        ${new Date(update.timestamp).toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('') : ''
+                    }
                 </div>
                 
                 <div class="action-buttons">
@@ -214,6 +233,11 @@ function createAlertHTML(alert) {
             </div>
         </div>
     `;
+}
+
+function showNoAlerts() {
+    document.getElementById('no-alerts').style.display = 'block';
+    document.getElementById('alert-container').innerHTML = '';
 }
 
 function callUser(phoneNumber, userName) {
@@ -262,8 +286,14 @@ async function updateAlertStatus(alertId, status) {
                     timestamp: new Date()
                 });
             }
+            
+            // Reload alerts to show updated status
+            setTimeout(() => {
+                loadContactAlerts();
+            }, 1000);
         } else {
-            alert('Failed to update status');
+            const error = await response.json();
+            alert('Failed to update status: ' + (error.message || 'Unknown error'));
         }
     } catch (error) {
         alert('Error updating status: ' + error.message);
@@ -271,29 +301,89 @@ async function updateAlertStatus(alertId, status) {
 }
 
 async function resolveAlert(alertId) {
-    if (confirm('Mark this emergency as resolved? This will notify all trusted contacts.')) {
+    if (confirm('Mark this emergency as resolved? This will notify all trusted contacts and the user.')) {
         await updateAlertStatus(alertId, 'resolved');
-        
-        // Reload alerts to update UI
-        setTimeout(() => {
-            loadContactAlerts();
-        }, 1000);
     }
 }
 
 function initializeContactSocket() {
-    socket = io('http://localhost:5000');
+    // Use relative path for socket connection in production
+    const socketUrl = window.location.hostname.includes('localhost') 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+    
+    socket = io(socketUrl);
     
     socket.emit('join-room', currentContact.id);
     
     socket.on('new-alert', (alertData) => {
-        alert(`NEW EMERGENCY ALERT!\n\n${currentContact.userName} needs your help immediately!`);
+        console.log('New alert received:', alertData);
+        showEmergencyNotification(alertData);
         loadContactAlerts(); // Reload to show new alert
     });
     
     socket.on('alert-status-update', (updateData) => {
         console.log('Alert status updated:', updateData);
-        // Update UI to show other contacts' actions
+        showAlert(`Update: ${updateData.contactName} marked alert as ${updateData.status}`);
         loadContactAlerts(); // Reload to get updated status
     });
+
+    socket.on('connect', () => {
+        console.log('Connected to server as trusted contact');
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Disconnected from server');
+    });
 }
+
+function showEmergencyNotification(alertData) {
+    // Create browser notification if supported
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('🚨 EMERGENCY ALERT', {
+            body: `${alertData.userName} needs your help!`,
+            icon: '/app/icon.png',
+            requireInteraction: true
+        });
+    }
+    
+    // Show on-screen alert
+    alert(`🚨 EMERGENCY ALERT!\n\n${alertData.userName} needs your help immediately!\n\nLocation: ${alertData.location || 'Not specified'}`);
+}
+
+function showAlert(message) {
+    // Create a temporary alert notification
+    const alertDiv = document.createElement('div');
+    alertDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 5px;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    `;
+    alertDiv.textContent = message;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        document.body.removeChild(alertDiv);
+    }, 5000);
+}
+
+// Request notification permission on page load
+document.addEventListener('DOMContentLoaded', function() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+});
+
+// Make functions globally available for HTML onclick events
+window.callUser = callUser;
+window.contactAuthorities = contactAuthorities;
+window.sendCheckIn = sendCheckIn;
+window.updateAlertStatus = updateAlertStatus;
+window.resolveAlert = resolveAlert;
+window.contactLogout = contactLogout;

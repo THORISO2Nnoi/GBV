@@ -4,20 +4,25 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    lowercase: true,
+    trim: true
   },
   password: {
     type: String,
-    required: true
+    required: true,
+    minlength: 6
   },
   phone: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   emergencyContacts: [{
     name: String,
@@ -26,7 +31,7 @@ const userSchema = new mongoose.Schema({
     relationship: String
   }],
   safetyPlan: {
-    safeWord: String,
+    safeWord: { type: String, default: 'bluebird' },
     safeLocations: [{
       name: String,
       address: String,
@@ -53,8 +58,8 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
-userSchema.methods.correctPassword = async function(candidatePassword, userPassword) {
-  return await bcrypt.compare(candidatePassword, userPassword);
+userSchema.methods.correctPassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 module.exports = mongoose.model('User', userSchema);
