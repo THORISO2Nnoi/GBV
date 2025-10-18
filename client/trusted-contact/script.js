@@ -1,6 +1,5 @@
-// client/trusted-contact/script.js
 const API_BASE = window.location.hostname.includes('localhost') 
-  ? 'http://localhost:5000/api' 
+  ? 'http://localhost:10000/api' 
   : '/api';
 
 let socket;
@@ -58,8 +57,8 @@ async function handleContactLogin(e) {
 }
 
 function showContactInterface() {
-    document.getElementById('login-section').style.display = 'none';
-    document.getElementById('alert-container').style.display = 'block';
+    document.getElementById('login-section').classList.add('hidden');
+    document.getElementById('alert-container').classList.remove('hidden');
     
     // Show user info in header
     const header = document.querySelector('header');
@@ -113,7 +112,7 @@ function displayAlerts(alerts) {
         return;
     }
     
-    noAlerts.style.display = 'none';
+    noAlerts.classList.add('hidden');
     alertContainer.innerHTML = alerts.map(alert => createAlertHTML(alert)).join('');
 }
 
@@ -236,7 +235,7 @@ function createAlertHTML(alert) {
 }
 
 function showNoAlerts() {
-    document.getElementById('no-alerts').style.display = 'block';
+    document.getElementById('no-alerts').classList.remove('hidden');
     document.getElementById('alert-container').innerHTML = '';
 }
 
@@ -309,7 +308,7 @@ async function resolveAlert(alertId) {
 function initializeContactSocket() {
     // Use relative path for socket connection in production
     const socketUrl = window.location.hostname.includes('localhost') 
-        ? 'http://localhost:5000' 
+        ? 'http://localhost:10000' 
         : window.location.origin;
     
     socket = io(socketUrl);

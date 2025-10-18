@@ -1,6 +1,5 @@
-// client/app/script.js
 const API_BASE = window.location.hostname.includes('localhost') 
-  ? 'http://localhost:5000/api' 
+  ? 'http://localhost:10000/api' 
   : '/api';
 
 let socket;
@@ -155,7 +154,7 @@ function handleLogout() {
 function initializeSocket() {
     // Use relative path for socket connection in production
     const socketUrl = window.location.hostname.includes('localhost') 
-        ? 'http://localhost:5000' 
+        ? 'http://localhost:10000' 
         : window.location.origin;
     
     socket = io(socketUrl);
