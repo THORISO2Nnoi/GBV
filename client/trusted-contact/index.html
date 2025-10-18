@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GBV Alert - Trusted Contact</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ GBV Safety Network</h1>
+            <p>Trusted Contact Portal</p>
+        </header>
+        
+        <div class="login-section" id="login-section">
+            <div class="login-form">
+                <h2>Trusted Contact Login</h2>
+                <form id="contact-login-form">
+                    <input type="email" id="contact-email" placeholder="Email" required>
+                    <input type="password" id="contact-password" placeholder="Password" required>
+                    <button type="submit" class="btn-primary">Sign In</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="alert-container hidden" id="alert-container">
+            <!-- Active alerts will be displayed here -->
+        </div>
+
+        <div class="no-alerts hidden" id="no-alerts">
+            <div class="no-alerts-content">
+                <span class="icon">✅</span>
+                <h3>No Active Alerts</h3>
+                <p>You will be notified immediately when someone needs your help.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

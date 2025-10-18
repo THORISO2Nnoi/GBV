@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GBV Support & Safety App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <div class="logo">
+                    <span class="logo-icon">🛡️</span>
+                    <h1>Safety Shield</h1>
+                </div>
+                <form id="login-form">
+                    <h2>Welcome Back</h2>
+                    <input type="email" id="login-email" placeholder="Email" required>
+                    <input type="password" id="login-password" placeholder="Password" required>
+                    <button type="submit" class="btn-primary">Sign In</button>
+                </form>
+                <p>Don't have an account? <a href="#" id="show-register">Sign Up</a></p>
+            </div>
+        </div>
+
+        <!-- Register Screen -->
+        <div id="register-screen" class="screen">
+            <div class="login-container">
+                <div class="logo">
+                    <span class="logo-icon">🛡️</span>
+                    <h1>Create Account</h1>
+                </div>
+                <form id="register-form">
+                    <input type="text" id="register-name" placeholder="Full Name" required>
+                    <input type="email" id="register-email" placeholder="Email" required>
+                    <input type="password" id="register-password" placeholder="Password" required>
+                    <input type="tel" id="register-phone" placeholder="Phone Number" required>
+                    <button type="submit" class="btn-primary">Create Account</button>
+                </form>
+                <p>Already have an account? <a href="#" id="show-login">Sign In</a></p>
+            </div>
+        </div>
+
+        <!-- Main App Screen -->
+        <div id="app-screen" class="screen">
+            <header class="app-header">
+                <h2>Safety Shield</h2>
+                <div class="user-menu">
+                    <span id="user-name">User</span>
+                    <button id="logout-btn">Logout</button>
+                </div>
+            </header>
+
+            <div class="app-content">
+                <!-- Emergency Button -->
+                <button class="emergency-btn" id="emergency-btn">
+                    <span class="btn-icon">🚨</span>
+                    EMERGENCY HELP
+                </button>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <div class="action-card" data-screen="contacts-screen">
+                        <span class="action-icon">👥</span>
+                        <span>Trusted Contacts</span>
+                    </div>
+                    <div class="action-card" data-screen="safety-screen">
+                        <span class="action-icon">🛡️</span>
+                        <span>Safety Plan</span>
+                    </div>
+                    <div class="action-card" data-screen="resources-screen">
+                        <span class="action-icon">📚</span>
+                        <span>Resources</span>
+                    </div>
+                    <div class="action-card" data-screen="evidence-screen">
+                        <span class="action-icon">📁</span>
+                        <span>Evidence Vault</span>
+                    </div>
+                </div>
+
+                <!-- Fake Mode Toggle -->
+                <div class="fake-mode">
+                    <button id="fake-mode-btn">Activate Calendar Mode</button>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="app-nav">
+                <div class="nav-item active" data-screen="home">
+                    <span class="nav-icon">🏠</span>
+                    <span>Home</span>
+                </div>
+                <div class="nav-item" data-screen="chat">
+                    <span class="nav-icon">💬</span>
+                    <span>Safe Chat</span>
+                </div>
+                <div class="nav-item" data-screen="contacts">
+                    <span class="nav-icon">👥</span>
+                    <span>Contacts</span>
+                </div>
+                <div class="nav-item" data-screen="profile">
+                    <span class="nav-icon">👤</span>
+                    <span>Profile</span>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Emergency Screen -->
+        <div id="emergency-screen" class="screen">
+            <div class="emergency-container">
+                <div class="countdown" id="countdown">5</div>
+                <p>Emergency alert will be sent in <span id="countdown-seconds">5</span> seconds</p>
+                
+                <div class="emergency-actions">
+                    <button class="btn-secondary" id="cancel-emergency">I'm Safe</button>
+                    <button class="btn-danger" id="send-now">Send Now</button>
+                </div>
+
+                <div class="location-info">
+                    <h3>📍 Your Location</h3>
+                    <p id="location-text">Getting your location...</p>
+                </div>
+
+                <div class="contacts-list">
+                    <h3>Contacts to be notified:</h3>
+                    <div id="emergency-contacts"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contacts Screen -->
+        <div id="contacts-screen" class="screen">
+            <div class="screen-header">
+                <h2>Trusted Contacts</h2>
+                <button class="btn-primary" id="add-contact-btn">Add Contact</button>
+            </div>
+            <div class="contacts-list" id="contacts-list"></div>
+        </div>
+
+        <!-- Add Contact Modal -->
+        <div id="add-contact-modal" class="modal">
+            <div class="modal-content">
+                <h3>Add Trusted Contact</h3>
+                <form id="add-contact-form">
+                    <input type="text" id="contact-name" placeholder="Full Name" required>
+                    <input type="tel" id="contact-phone" placeholder="Phone Number" required>
+                    <input type="email" id="contact-email" placeholder="Email">
+                    <input type="text" id="contact-relationship" placeholder="Relationship">
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancel-contact">Cancel</button>
+                        <button type="submit" class="btn-primary">Add Contact</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

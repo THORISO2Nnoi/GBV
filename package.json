@@ -1,0 +1,29 @@
+{
+  "name": "gbv-support-system",
+  "version": "1.0.0",
+  "description": "GBV Support and Safety System with Trusted Contact Alerts",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "client": "live-server client/app --port=3000 --cors",
+    "contact": "live-server client/trusted-contact --port=3001 --cors",
+    "start-all": "concurrently \"npm run dev\" \"npm run client\" \"npm run contact\""
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "cors": "^2.8.5",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.7.2",
+    "dotenv": "^16.3.1",
+    "nodemailer": "^6.9.4",
+    "twilio": "^4.14.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "live-server": "^1.2.2",
+    "concurrently": "^8.2.0"
+  }
+}
