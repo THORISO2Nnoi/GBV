@@ -8,7 +8,9 @@
     "dev": "nodemon server/index.js",
     "client": "live-server client/app --port=3000 --cors",
     "contact": "live-server client/trusted-contact --port=3001 --cors",
-    "start-all": "concurrently \"npm run dev\" \"npm run client\" \"npm run contact\""
+    "start-all": "concurrently \"npm run dev\" \"npm run client\" \"npm run contact\"",
+    "render-build": "npm install",
+    "render-start": "npm start"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -25,5 +27,8 @@
     "nodemon": "^3.0.1",
     "live-server": "^1.2.2",
     "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

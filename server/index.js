@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -17,10 +18,13 @@ const io = socketIo(server, {
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('../client'));
+
+// Serve static files from client directories
+app.use('/app', express.static(path.join(__dirname, '../../client/app')));
+app.use('/trusted-contact', express.static(path.join(__dirname, '../../client/trusted-contact')));
 
 // MongoDB Connection - Updated with your MongoDB Atlas connection
-const MONGODB_URI = 'mongodb+srv://NNOI:THORISO2@cluster0.amrhd90.mongodb.net/gbv_support?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://NNOI:THORISO2@cluster0.amrhd90.mongodb.net/gbv_support?retryWrites=true&w=majority&appName=Cluster0';
 
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
@@ -37,6 +41,19 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/contact-auth', require('./routes/contactAuth'));
+
+// Serve the main applications
+app.get('/', (req, res) => {
+  res.redirect('/app');
+});
+
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/app/index.html'));
+});
+
+app.get('/trusted-contact', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/trusted-contact/index.html'));
+});
 
 // Socket.io for real-time alerts
 io.on('connection', (socket) => {
@@ -71,6 +88,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 GBV App: http://localhost:3000`);
-  console.log(`👥 Trusted Contact: http://localhost:3001`);
+  console.log(`📱 GBV App: http://localhost:${PORT}/app`);
+  console.log(`👥 Trusted Contact: http://localhost:${PORT}/trusted-contact`);
+  console.log(`🔧 API Server: http://localhost:${PORT}/api`);
 });

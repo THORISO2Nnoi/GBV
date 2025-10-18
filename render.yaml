@@ -1,0 +1,17 @@
+# render.yaml
+services:
+  - type: web
+    name: gbv-support-system
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://NNOI:THORISO2@cluster0.amrhd90.mongodb.net/gbv_support?retryWrites=true&w=majority&appName=Cluster0
+      - key: JWT_SECRET
+        value: gbv_support_system_secret_key_2024_production
+      - key: PORT
+        value: 10000
