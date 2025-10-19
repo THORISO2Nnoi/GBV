@@ -3,41 +3,1625 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GBV Alert - Trusted Contact</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Safety Shield - Trusted Contact</title>
+    <style>
+        :root {
+            --primary: #8B008B;
+            --secondary: #4B0082;
+            --accent: #FF69B4;
+            --light: #F8F8FF;
+            --dark: #2F2F2F;
+            --safe: #32CD32;
+            --warning: #FF4500;
+            --danger: #DC143C;
+            --success: #28a745;
+            --info: #17a2b8;
+            --app-bg: #f5f5f7;
+            --card-bg: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Login Styles */
+        .login-container {
+            padding: 2rem;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .logo {
+            margin-bottom: 2rem;
+        }
+
+        .logo-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        input {
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 0, 139, 0.4);
+        }
+
+        .login-info {
+            margin-top: 2rem;
+        }
+
+        .login-info h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .info-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .info-card {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: left;
+            border-left: 4px solid var(--primary);
+        }
+
+        .info-icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .info-card h4 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .info-card p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* App Header */
+        .app-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-header h2 {
+            font-size: 1.3rem;
+        }
+
+        .app-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        #contact-logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* App Content */
+        .app-content {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: var(--app-bg);
+        }
+
+        /* Stats Overview */
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            margin-bottom: 2rem;
+        }
+
+        .quick-actions h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .action-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #f0f0f0;
+        }
+
+        .action-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+
+        .action-icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Alerts Section */
+        .alerts-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-header h3 {
+            color: var(--primary);
+        }
+
+        .alert-badge {
+            background: var(--danger);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .alerts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .alert-item {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--danger);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-icon {
+            font-size: 2rem;
+        }
+
+        .alert-header h4 {
+            color: var(--danger);
+            flex: 1;
+        }
+
+        .alert-time {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #fff0f0;
+            border-radius: 8px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .user-details h4 {
+            color: var(--dark);
+            margin-bottom: 0.3rem;
+        }
+
+        .user-details p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .alert-details {
+            margin-bottom: 1rem;
+        }
+
+        .alert-details p {
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-btn {
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .alert-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .alert-btn.primary {
+            background: var(--danger);
+            color: white;
+        }
+
+        .alert-btn.secondary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .alert-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .status-updates {
+            margin-top: 1rem;
+        }
+
+        .status-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .status-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        /* New Alert Animation */
+        .new-alert {
+            animation: pulse 2s infinite;
+            border: 2px solid var(--danger);
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 20, 60, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 20, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 20, 60, 0); }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Preparedness Info */
+        .preparedness-info {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .preparedness-info h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .preparedness-tips {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .tip-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem;
+            background: var(--light);
+            border-radius: 8px;
+        }
+
+        .tip-icon {
+            font-size: 1.2rem;
+            width: 24px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h3 {
+            color: var(--primary);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .contacts-list {
+            padding: 1.5rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .contact-item.emergency {
+            background: #fff0f0;
+            border-left: 4px solid var(--danger);
+        }
+
+        .contact-item:not(.emergency) {
+            background: var(--light);
+            border-left: 4px solid var(--primary);
+        }
+
+        .contact-item:hover {
+            transform: translateX(5px);
+        }
+
+        .contact-icon {
+            font-size: 1.5rem;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-info h4 {
+            color: var(--dark);
+            margin-bottom: 0.3rem;
+        }
+
+        .contact-info p {
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .contact-info small {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .call-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* Protocol Steps */
+        .protocol-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--light);
+            border-radius: 8px;
+        }
+
+        .step-number {
+            background: var(--primary);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        /* Safety Sections */
+        .safety-section {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .safety-section:last-child {
+            border-bottom: none;
+        }
+
+        .safety-section h4 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .safety-section ol, .safety-section ul {
+            padding-left: 1.5rem;
+        }
+
+        .safety-section li {
+            margin-bottom: 0.5rem;
+        }
+
+        .scenario {
+            background: var(--light);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .scenario h5 {
+            color: var(--danger);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Animation for notifications */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 1.5rem; }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .app-container {
+                max-width: 100%;
+            }
+            
+            .stats-overview {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .alert-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #c62828;
+        }
+
+        /* Emergency Sound */
+        .emergency-sound {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🛡️ GBV Safety Network</h1>
-            <p>Trusted Contact Portal</p>
-        </header>
-        
-        <div class="login-section" id="login-section">
-            <div class="login-form">
-                <h2>Trusted Contact Login</h2>
+    <!-- Emergency Sound (will play when alert received) -->
+    <audio id="emergency-sound" class="emergency-sound" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAABAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AAABQTEFNRTMuMTAwBKkAAAAAAAAAADUgJAOIIQAAgAAAgHDKX5mRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//sQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+
+    <div class="app-container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <div class="logo">
+                    <span class="logo-icon">🛡️</span>
+                    <h1>Safety Shield</h1>
+                    <p>Trusted Contact Portal</p>
+                </div>
                 <form id="contact-login-form">
+                    <h2>Trusted Contact Login</h2>
                     <input type="email" id="contact-email" placeholder="Email" required>
                     <input type="password" id="contact-password" placeholder="Password" required>
                     <button type="submit" class="btn-primary">Sign In</button>
                 </form>
+                
+                <div class="login-info">
+                    <h3>Your Role as a Trusted Contact</h3>
+                    <div class="info-cards">
+                        <div class="info-card">
+                            <span class="info-icon">🚨</span>
+                            <h4>Emergency Response</h4>
+                            <p>Receive alerts when someone needs immediate help</p>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-icon">📞</span>
+                            <h4>Quick Action</h4>
+                            <p>Call the person or contact authorities if needed</p>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-icon">👥</span>
+                            <h4>Coordination</h4>
+                            <p>Work with other trusted contacts for support</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="alert-container hidden" id="alert-container">
-            <!-- Active alerts will be displayed here -->
-        </div>
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="screen">
+            <header class="app-header">
+                <div>
+                    <h2>Trusted Contact</h2>
+                    <p id="user-role">Safety Network</p>
+                </div>
+                <div class="user-menu">
+                    <span id="contact-name-display">Contact</span>
+                    <button id="contact-logout-btn">Logout</button>
+                </div>
+            </header>
 
-        <div class="no-alerts hidden" id="no-alerts">
-            <div class="no-alerts-content">
-                <span class="icon">✅</span>
-                <h3>No Active Alerts</h3>
-                <p>You will be notified immediately when someone needs your help.</p>
+            <div class="app-content">
+                <!-- Stats Overview -->
+                <div class="stats-overview">
+                    <div class="stat-card">
+                        <span class="stat-number" id="active-alerts">0</span>
+                        <span class="stat-label">Active Alerts</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="total-alerts">0</span>
+                        <span class="stat-label">Total Received</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="response-rate">0%</span>
+                        <span class="stat-label">Response Rate</span>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-grid">
+                        <div class="action-card" onclick="viewEmergencyContacts()">
+                            <span class="action-icon">📞</span>
+                            <span>Emergency Contacts</span>
+                        </div>
+                        <div class="action-card" onclick="openSafetyGuide()">
+                            <span class="action-icon">📚</span>
+                            <span>Safety Guide</span>
+                        </div>
+                        <div class="action-card" onclick="testCall()">
+                            <span class="action-icon">🔊</span>
+                            <span>Test Call</span>
+                        </div>
+                        <div class="action-card" onclick="viewResponseProtocol()">
+                            <span class="action-icon">🛡️</span>
+                            <span>Response Protocol</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Alerts -->
+                <div class="alerts-section">
+                    <div class="section-header">
+                        <h3>Active Emergency Alerts</h3>
+                        <span class="alert-badge" id="alert-count">0</span>
+                    </div>
+                    
+                    <div class="alerts-container" id="alerts-container">
+                        <!-- Alerts will be displayed here -->
+                    </div>
+
+                    <div class="no-alerts" id="no-alerts">
+                        <div class="empty-state">
+                            <span class="empty-icon">✅</span>
+                            <h3>No Active Alerts</h3>
+                            <p>You will be notified immediately when someone needs your help.</p>
+                        </div>
+                    </div>
+
+                    <div id="alerts-loading" class="loading hidden">
+                        <p>Loading alerts...</p>
+                    </div>
+
+                    <div id="alerts-error" class="error-message hidden">
+                        <p>Error loading alerts. Please try again.</p>
+                    </div>
+                </div>
+
+                <!-- Preparedness Info -->
+                <div class="preparedness-info">
+                    <h3>Be Prepared</h3>
+                    <div class="preparedness-tips">
+                        <div class="tip-item">
+                            <span class="tip-icon">🔋</span>
+                            <span>Keep your phone charged and nearby</span>
+                        </div>
+                        <div class="tip-item">
+                            <span class="tip-icon">🗣️</span>
+                            <span>Know the safe word: <strong>BLUEBIRD</strong></span>
+                        </div>
+                        <div class="tip-item">
+                            <span class="tip-icon">📱</span>
+                            <span>Save emergency numbers locally</span>
+                        </div>
+                        <div class="tip-item">
+                            <span class="tip-icon">👥</span>
+                            <span>Coordinate with other trusted contacts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emergency Contacts Modal -->
+    <div id="contacts-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Emergency Contacts</h3>
+                <button class="close-btn" onclick="hideModal('contacts-modal')">×</button>
+            </div>
+            <div class="contacts-list">
+                <div class="contact-item emergency" onclick="callNumber('911')">
+                    <span class="contact-icon">🚓</span>
+                    <div class="contact-info">
+                        <h4>Police Emergency</h4>
+                        <p>911</p>
+                        <small>Immediate police response</small>
+                    </div>
+                    <button class="call-btn">Call</button>
+                </div>
+                <div class="contact-item" onclick="callNumber('0800428428')">
+                    <span class="contact-icon">🏥</span>
+                    <div class="contact-info">
+                        <h4>GBV Helpline</h4>
+                        <p>0800 428 428</p>
+                        <small>24/7 GBV support</small>
+                    </div>
+                    <button class="call-btn">Call</button>
+                </div>
+                <div class="contact-item" onclick="callNumber('112')">
+                    <span class="contact-icon">🚑</span>
+                    <div class="contact-info">
+                        <h4>Ambulance</h4>
+                        <p>112</p>
+                        <small>Medical emergency</small>
+                    </div>
+                    <button class="call-btn">Call</button>
+                </div>
+                <div class="contact-item" onclick="callNumber('0861322322')">
+                    <span class="contact-icon">💬</span>
+                    <div class="contact-info">
+                        <h4>Lifeline Counseling</h4>
+                        <p>0861 322 322</p>
+                        <small>Crisis support</small>
+                    </div>
+                    <button class="call-btn">Call</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js"></script>
+    <script>
+        // Fixed Trusted Contact App JavaScript
+        const API_BASE = window.location.hostname.includes('localhost') 
+            ? 'http://localhost:3000/api' 
+            : '/api';
+
+        let socket;
+        let currentContact = null;
+        let alertsHistory = [];
+
+        // Track which alerts are currently being updated to prevent duplicates
+        const updatingAlerts = new Set();
+
+        // DOM Elements
+        const screens = {
+            login: document.getElementById('login-screen'),
+            dashboard: document.getElementById('dashboard-screen')
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeContactEventListeners();
+            checkContactAuth();
+            
+            // Request notification permission immediately
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        });
+
+        function initializeContactEventListeners() {
+            document.getElementById('contact-login-form').addEventListener('submit', handleContactLogin);
+            document.getElementById('contact-logout-btn').addEventListener('click', contactLogout);
+        }
+
+        function checkContactAuth() {
+            const token = localStorage.getItem('gbv_contact_token');
+            const contact = localStorage.getItem('gbv_contact');
+            
+            if (token && contact) {
+                currentContact = JSON.parse(contact);
+                initializeContactSocket();
+                loadContactAlerts();
+                showDashboard();
+            }
+        }
+
+        async function handleContactLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('contact-email').value;
+            const password = document.getElementById('contact-password').value;
+
+            try {
+                console.log('🔐 Attempting contact login...');
+                const response = await fetch(`${API_BASE}/contact-auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    console.log('✅ Contact login successful');
+                    localStorage.setItem('gbv_contact_token', data.token);
+                    localStorage.setItem('gbv_contact', JSON.stringify(data.contact));
+                    currentContact = data.contact;
+                    
+                    initializeContactSocket();
+                    loadContactAlerts();
+                    showDashboard();
+                    showAlert('Login successful!');
+                } else {
+                    console.error('❌ Contact login failed:', data.message);
+                    alert(data.message || 'Login failed. Please check your credentials.');
+                }
+            } catch (error) {
+                console.error('❌ Contact login error:', error);
+                alert('Login error: ' + error.message);
+            }
+        }
+
+        function showDashboard() {
+            showScreen('dashboard');
+            
+            // Update user info with actual data from backend
+            document.getElementById('contact-name-display').textContent = currentContact.name;
+            document.getElementById('user-role').textContent = `Trusted contact for ${currentContact.userName}`;
+            
+            console.log('📊 Dashboard loaded for:', currentContact.name);
+        }
+
+        function contactLogout() {
+            localStorage.removeItem('gbv_contact_token');
+            localStorage.removeItem('gbv_contact');
+            currentContact = null;
+            if (socket) {
+                socket.disconnect();
+                console.log('🔌 Socket disconnected');
+            }
+            showScreen('login');
+        }
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(screen => screen.classList.remove('active'));
+            if (screens[screenName]) {
+                screens[screenName].classList.add('active');
+            }
+        }
+
+        async function loadContactAlerts() {
+            showLoadingState();
+            
+            try {
+                const token = localStorage.getItem('gbv_contact_token');
+                console.log('📡 Loading contact alerts...');
+                
+                const response = await fetch(`${API_BASE}/contact-auth/alerts`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const alerts = await response.json();
+                    alertsHistory = alerts;
+                    console.log(`✅ Loaded ${alerts.length} alerts from database`);
+                    displayAlerts(alerts);
+                    updateStats(alerts);
+                    hideLoadingState();
+                } else {
+                    console.error('❌ Failed to load alerts');
+                    showErrorState('Failed to load alerts from server');
+                }
+            } catch (error) {
+                console.error('❌ Error loading alerts:', error);
+                showErrorState('Error loading alerts: ' + error.message);
+            }
+        }
+
+        function displayAlerts(alerts) {
+            const alertContainer = document.getElementById('alerts-container');
+            const noAlerts = document.getElementById('no-alerts');
+            const alertCount = document.getElementById('alert-count');
+            
+            if (alerts.length === 0) {
+                showNoAlerts();
+                return;
+            }
+            
+            noAlerts.classList.add('hidden');
+            alertCount.textContent = alerts.length;
+            
+            // Sort alerts by creation date (newest first)
+            const sortedAlerts = alerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            alertContainer.innerHTML = sortedAlerts.map(alert => createAlertHTML(alert)).join('');
+            
+            console.log(`📋 Displayed ${alerts.length} alerts in dashboard`);
+        }
+
+        function createAlertHTML(alert) {
+            const user = alert.userId || {};
+            const userName = user.name || alert.userName || 'User';
+            const userPhone = user.phone || alert.userPhone || 'Phone not available';
+            const relationship = currentContact.relationship || 'Trusted Contact';
+            const alertTime = new Date(alert.createdAt).toLocaleString();
+            const location = alert.location || 'Location not available';
+            const isUpdating = updatingAlerts.has(alert._id);
+            const isNew = Date.now() - new Date(alert.createdAt).getTime() < 60000; // New if less than 1 minute old
+            
+            return `
+                <div class="alert-item ${isNew ? 'new-alert' : ''}" id="alert-${alert._id}">
+                    <div class="alert-header">
+                        <span class="alert-icon">🚨</span>
+                        <h4>EMERGENCY ALERT</h4>
+                        <span class="alert-time">${alertTime}</span>
+                    </div>
+                    
+                    <div class="user-info">
+                        <div class="user-avatar">${userName.charAt(0).toUpperCase()}</div>
+                        <div class="user-details">
+                            <h4>${userName}</h4>
+                            <p>${relationship}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="alert-details">
+                        <p><strong>Location:</strong> ${location}</p>
+                        <p><strong>Phone:</strong> ${userPhone}</p>
+                        ${alert.message ? `<p><strong>Message:</strong> ${alert.message}</p>` : ''}
+                        ${alert.emergencyType ? `<p><strong>Emergency Type:</strong> ${alert.emergencyType}</p>` : ''}
+                    </div>
+                    
+                    <div class="alert-actions">
+                        <button class="alert-btn primary" onclick="callUser('${userPhone}', '${userName}')">
+                            📞 Call ${userName}
+                        </button>
+                        <button class="alert-btn secondary" onclick="contactAuthorities('${userName}', '${location}', '${userPhone}')">
+                            🚓 Contact Authorities
+                        </button>
+                    </div>
+                    
+                    <div class="status-updates">
+                        <button class="alert-btn status-btn" 
+                                onclick="updateAlertStatus('${alert._id}', 'contacted')" 
+                                ${isUpdating ? 'disabled' : ''}
+                                style="background: ${isUpdating ? '#ccc' : 'var(--success)'}; color: white; margin-top: 0.5rem;">
+                            ${isUpdating ? '⏳ Updating...' : '✅ Mark as Contacted'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateStats(alerts) {
+            const activeAlerts = alerts.filter(alert => alert.status === 'active').length;
+            const totalAlerts = alerts.length;
+            const respondedAlerts = alerts.filter(alert => 
+                alert.responseUpdates && alert.responseUpdates.some(update => 
+                    update.contactId && update.contactId.toString() === currentContact.id
+                )
+            ).length;
+            const responseRate = totalAlerts > 0 ? Math.round((respondedAlerts / totalAlerts) * 100) : 0;
+
+            document.getElementById('active-alerts').textContent = activeAlerts;
+            document.getElementById('total-alerts').textContent = totalAlerts;
+            document.getElementById('response-rate').textContent = responseRate + '%';
+            
+            console.log(`📊 Stats updated - Active: ${activeAlerts}, Total: ${totalAlerts}, Rate: ${responseRate}%`);
+        }
+
+        function showNoAlerts() {
+            document.getElementById('no-alerts').classList.remove('hidden');
+            document.getElementById('alerts-container').innerHTML = '';
+            document.getElementById('alert-count').textContent = '0';
+            updateStats([]);
+        }
+
+        function showLoadingState() {
+            document.getElementById('alerts-loading').classList.remove('hidden');
+            document.getElementById('alerts-error').classList.add('hidden');
+            document.getElementById('no-alerts').classList.add('hidden');
+        }
+
+        function hideLoadingState() {
+            document.getElementById('alerts-loading').classList.add('hidden');
+        }
+
+        function showErrorState(message) {
+            document.getElementById('alerts-loading').classList.add('hidden');
+            document.getElementById('alerts-error').classList.remove('hidden');
+            document.getElementById('alerts-error').querySelector('p').textContent = message;
+        }
+
+        function callUser(phoneNumber, userName) {
+            console.log(`📞 Attempting to call ${userName} at ${phoneNumber}`);
+            
+            // In a real app, this would use tel: links
+            if (confirm(`Call ${userName} at ${phoneNumber}?\n\nIn a real implementation, this would connect you directly.`)) {
+                // For actual calling, you would use:
+                // window.location.href = `tel:${phoneNumber}`;
+                
+                showNotification(`Calling ${userName}...`);
+                console.log(`✅ Call initiated to ${userName}`);
+            }
+        }
+
+        function contactAuthorities(userName, location, userPhone) {
+            console.log(`🚓 Contacting authorities for ${userName}`);
+            
+            const locationInfo = location ? `\nLocation: ${location}` : '';
+            const phoneInfo = userPhone ? `\nPhone: ${userPhone}` : '';
+            
+            if (confirm(`Contact local authorities for ${userName}?${locationInfo}${phoneInfo}\n\nEmergency information would be shared automatically.`)) {
+                showNotification(`Contacting authorities for ${userName}...`);
+                console.log(`✅ Authorities contacted for ${userName}`);
+                
+                // Automatically mark as contacted after contacting authorities
+                const activeAlerts = alertsHistory.filter(alert => alert.status === 'active');
+                if (activeAlerts.length > 0) {
+                    const latestAlert = activeAlerts[0];
+                    updateAlertStatus(latestAlert._id, 'contacted');
+                }
+            }
+        }
+
+        async function updateAlertStatus(alertId, status) {
+            // Prevent multiple updates for the same alert
+            if (updatingAlerts.has(alertId)) {
+                console.log('⚠️ Alert update already in progress for:', alertId);
+                return;
+            }
+            
+            // Add to updating set
+            updatingAlerts.add(alertId);
+            
+            // Update button state immediately
+            const statusButtons = document.querySelectorAll('.status-btn');
+            statusButtons.forEach(button => {
+                if (button.onclick && button.onclick.toString().includes(alertId)) {
+                    button.disabled = true;
+                    button.textContent = '⏳ Updating...';
+                    button.style.background = '#ccc';
+                }
+            });
+
+            try {
+                const token = localStorage.getItem('gbv_contact_token');
+                console.log(`📝 Updating alert ${alertId} to status: ${status}`);
+                
+                const response = await fetch(`${API_BASE}/alerts/${alertId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        status: status,
+                        notes: `Status updated by trusted contact: ${currentContact.name}`
+                    })
+                });
+
+                if (response.ok) {
+                    console.log(`✅ Alert status updated to: ${status}`);
+                    showNotification(`Status updated to: ${status}`);
+                    
+                    if (socket) {
+                        socket.emit('alert-update', {
+                            alertId: alertId,
+                            status: status,
+                            contactName: currentContact.name,
+                            timestamp: new Date()
+                        });
+                    }
+                    
+                    // Reload alerts to show updated status after a delay
+                    setTimeout(() => {
+                        loadContactAlerts();
+                        // Remove from updating set after successful update and reload
+                        setTimeout(() => {
+                            updatingAlerts.delete(alertId);
+                        }, 2000);
+                    }, 1500);
+                    
+                } else {
+                    const error = await response.json();
+                    console.error('❌ Failed to update status:', error);
+                    alert('Failed to update status: ' + (error.message || 'Unknown error'));
+                    
+                    // Re-enable buttons on error
+                    setTimeout(() => {
+                        updatingAlerts.delete(alertId);
+                        loadContactAlerts(); // Reload to reset button states
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('❌ Error updating status:', error);
+                alert('Error updating status: ' + error.message);
+                
+                // Re-enable buttons on error
+                setTimeout(() => {
+                    updatingAlerts.delete(alertId);
+                    loadContactAlerts(); // Reload to reset button states
+                }, 1000);
+            }
+        }
+
+        function initializeContactSocket() {
+            const socketUrl = window.location.hostname.includes('localhost') 
+                ? 'http://localhost:3000' 
+                : window.location.origin;
+            
+            console.log('🔌 Connecting to socket server:', socketUrl);
+            
+            socket = io(socketUrl, {
+                transports: ['websocket', 'polling']
+            });
+            
+            if (currentContact && currentContact.id) {
+                socket.emit('join-contact-room', currentContact.id);
+                console.log('✅ Joined contact room:', currentContact.id);
+            }
+            
+            // FIXED: Listen for new alerts with proper event handling
+            socket.on('new-alert', (alertData) => {
+                console.log('🚨 NEW ALERT RECEIVED VIA SOCKET:', alertData);
+                handleNewAlert(alertData);
+            });
+
+            // Also listen for broadcast alerts
+            socket.on('new-alert-broadcast', (alertData) => {
+                console.log('📢 BROADCAST ALERT RECEIVED:', alertData);
+                handleNewAlert(alertData);
+            });
+            
+            socket.on('alert-status-update', (updateData) => {
+                console.log('📝 Alert status updated:', updateData);
+                showNotification(`Update: ${updateData.contactName} marked alert as ${updateData.status}`);
+                loadContactAlerts();
+            });
+
+            socket.on('connect', () => {
+                console.log('✅ Connected to server as trusted contact');
+                showNotification('Connected to emergency alert system');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('❌ Disconnected from server');
+                showNotification('Disconnected from server - alerts may be delayed');
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('❌ Socket connection error:', error);
+            });
+
+            // Test socket connection
+            socket.emit('ping', { message: 'Hello from trusted contact app' });
+            socket.on('pong', (data) => {
+                console.log('📡 Socket test successful:', data);
+            });
+        }
+
+        function handleNewAlert(alertData) {
+            console.log('🔄 Processing new alert:', alertData);
+            
+            // Play emergency sound
+            playEmergencySound();
+            
+            // Show emergency notification
+            showEmergencyNotification(alertData);
+            
+            // Reload alerts to show the new one
+            loadContactAlerts();
+            
+            // Vibrate if supported
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+        }
+
+        function playEmergencySound() {
+            try {
+                const emergencySound = document.getElementById('emergency-sound');
+                if (emergencySound) {
+                    emergencySound.volume = 0.7;
+                    emergencySound.play().catch(e => {
+                        console.log('🔇 Sound play prevented:', e);
+                    });
+                }
+            } catch (error) {
+                console.log('🔇 Sound play error:', error);
+            }
+        }
+
+        function showEmergencyNotification(alertData) {
+            const userName = alertData.userName || 'User';
+            const location = alertData.location || 'Location unknown';
+            
+            console.log('🔄 Showing emergency notification for:', userName);
+            
+            // Create browser notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('🚨 EMERGENCY ALERT - Safety Shield', {
+                    body: `${userName} needs your help!\nLocation: ${location}\nClick to view details.`,
+                    icon: '/icon.png',
+                    requireInteraction: true,
+                    tag: 'emergency-alert',
+                    vibrate: [200, 100, 200]
+                });
+            } else if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        new Notification('🚨 EMERGENCY ALERT - Safety Shield', {
+                            body: `${userName} needs your help!`,
+                            icon: '/icon.png',
+                            requireInteraction: true
+                        });
+                    }
+                });
+            }
+            
+            // Show on-screen notification
+            showNotification(`🚨 EMERGENCY ALERT!\n\n${userName} needs your help immediately!\nLocation: ${location}\n\nPlease respond quickly!`);
+        }
+
+        function showNotification(message) {
+            const notificationDiv = document.createElement('div');
+            notificationDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--danger);
+                color: white;
+                padding: 20px;
+                border-radius: 12px;
+                z-index: 10000;
+                box-shadow: 0 8px 25px rgba(220, 20, 60, 0.6);
+                max-width: 350px;
+                animation: slideIn 0.5s ease-out;
+                font-weight: bold;
+                font-size: 1.1rem;
+                border: 3px solid #fff;
+                text-align: center;
+            `;
+            notificationDiv.innerHTML = message.replace(/\n/g, '<br>');
+            document.body.appendChild(notificationDiv);
+            
+            // Make notification clickable to focus the app
+            notificationDiv.addEventListener('click', () => {
+                window.focus();
+                if (notificationDiv.parentNode) {
+                    document.body.removeChild(notificationDiv);
+                }
+            });
+            
+            setTimeout(() => {
+                if (notificationDiv.parentNode) {
+                    document.body.removeChild(notificationDiv);
+                }
+            }, 10000); // Show for 10 seconds for emergencies
+        }
+
+        function showAlert(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                max-width: 300px;
+            `;
+            alertDiv.textContent = message;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    document.body.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+
+        // Enhanced Quick Actions Functions
+        function testCall() {
+            if (currentContact && currentContact.userPhone) {
+                alert(`Test Call Initiated:\n\nCalling ${currentContact.userName} at ${currentContact.userPhone}\n\nThis would connect to the user in a real implementation.`);
+            } else {
+                alert('Test Call: This would simulate calling the person who added you as a trusted contact.\n\nIn a real implementation, it would dial their number directly.');
+            }
+        }
+
+        function openSafetyGuide() {
+            const safetyGuideHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Safety Guide & Response Protocols</h3>
+                        <button class="close-btn" onclick="hideModal('safety-guide-modal')">×</button>
+                    </div>
+                    <div class="modal-body" style="padding: 1.5rem; max-height: 60vh; overflow-y: auto;">
+                        <div class="safety-section">
+                            <h4>🚨 Immediate Response Protocol</h4>
+                            <ol>
+                                <li><strong>Call the Person First</strong> - Try to reach them directly</li>
+                                <li><strong>Assess the Situation</strong> - Ask if they're safe and need help</li>
+                                <li><strong>Contact Authorities</strong> - If no response or immediate danger</li>
+                                <li><strong>Coordinate with Other Contacts</strong> - Work as a team</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="safety-section">
+                            <h4>📞 Communication Guidelines</h4>
+                            <ul>
+                                <li>Use the safe word: <strong>BLUEBIRD</strong> to confirm safety</li>
+                                <li>Ask yes/no questions if they can't speak freely</li>
+                                <li>Listen for background noises and context clues</li>
+                                <li>Don't hang up until you know they're safe</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            showCustomModal('safety-guide-modal', safetyGuideHTML);
+        }
+
+        function viewResponseProtocol() {
+            const protocolHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Emergency Response Protocol</h3>
+                        <button class="close-btn" onclick="hideModal('protocol-modal')">×</button>
+                    </div>
+                    <div class="modal-body" style="padding: 1.5rem;">
+                        <div class="protocol-steps">
+                            <div class="step">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>Immediate Action</h4>
+                                    <p>Call the person within 2 minutes of receiving alert</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>Assessment</h4>
+                                    <p>Determine safety level and immediate needs</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    <h4>Escalation</h4>
+                                    <p>Contact authorities if danger is confirmed</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            showCustomModal('protocol-modal', protocolHTML);
+        }
+
+        function showCustomModal(modalId, contentHTML) {
+            const existingModal = document.getElementById(modalId);
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            const modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal active';
+            modal.innerHTML = contentHTML;
+            
+            document.body.appendChild(modal);
+            
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    hideModal(modalId);
+                }
+            });
+        }
+
+        function callNumber(number) {
+            const confirmed = confirm(`Call ${number}?\n\nIn a real app, this would automatically dial the number.`);
+            
+            if (confirmed) {
+                showNotification(`Connecting to ${number}...`);
+                console.log(`Call attempted to: ${number}`);
+            }
+        }
+
+        function viewEmergencyContacts() {
+            showModal('contacts-modal');
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Make functions globally available
+        window.callUser = callUser;
+        window.contactAuthorities = contactAuthorities;
+        window.updateAlertStatus = updateAlertStatus;
+        window.contactLogout = contactLogout;
+        window.testCall = testCall;
+        window.viewEmergencyContacts = viewEmergencyContacts;
+        window.openSafetyGuide = openSafetyGuide;
+        window.viewResponseProtocol = viewResponseProtocol;
+        window.callNumber = callNumber;
+        window.hideModal = hideModal;
+    </script>
 </body>
 </html>
