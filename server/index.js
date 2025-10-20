@@ -1,4 +1,3 @@
-// server/index.js
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -25,10 +24,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/app', express.static(path.join(__dirname, '../client/app')));
 app.use('/trusted-contact', express.static(path.join(__dirname, '../client/trusted-contact')));
 
-// MongoDB Connection
+// MongoDB Atlas Connection - USING YOUR ATLAS DATABASE
 const MONGODB_URI = 'mongodb+srv://NNOI:NNOI2@cluster0.amrhd90.mongodb.net/gbv_support?retryWrites=true&w=majority&appName=Cluster0';
 
 console.log('🔗 Connecting to MongoDB Atlas...');
+console.log('Database URL:', MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')); // Hide password
+
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -37,19 +38,15 @@ mongoose.connect(MONGODB_URI, {
 })
 .then(() => {
   console.log('✅ Connected to MongoDB Atlas');
+  console.log('📊 Database: gbv_support');
 })
 .catch(err => {
-  console.error('❌ MongoDB connection error:', err.message);
+  console.error('❌ MongoDB Atlas connection error:', err.message);
+  console.log('💡 Please check:');
+  console.log('   - MongoDB Atlas cluster is running');
+  console.log('   - IP address is whitelisted in MongoDB Atlas');
+  console.log('   - Username and password are correct');
   process.exit(1);
-});
-
-// Initialize Socket.io
-const io = socketIo(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
 });
 
 // Import routes
@@ -77,14 +74,46 @@ app.get('/trusted-contact', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/trusted-contact/index.html'));
 });
 
-// Health check endpoint
+// Health check endpoint with DB status
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'GBV Support System is running',
     timestamp: new Date().toISOString(),
-    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
+    database: mongoose.connection.readyState === 1 ? 'Connected to MongoDB Atlas' : 'Disconnected',
+    databaseName: 'gbv_support',
+    databaseType: 'MongoDB Atlas Cloud'
   });
+});
+
+// Database status endpoint
+app.get('/api/db-status', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const Contact = require('./models/Contact');
+    const Alert = require('./models/Alert');
+    
+    const userCount = await User.countDocuments();
+    const contactCount = await Contact.countDocuments();
+    const alertCount = await Alert.countDocuments();
+    
+    res.json({
+      database: 'MongoDB Atlas',
+      status: 'Connected',
+      connectionState: mongoose.connection.readyState,
+      userCount,
+      contactCount,
+      alertCount,
+      databaseName: 'gbv_support'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      database: 'MongoDB Atlas',
+      status: 'Error',
+      error: error.message,
+      connectionState: mongoose.connection.readyState
+    });
+  }
 });
 
 // API test endpoint
@@ -92,11 +121,21 @@ app.get('/api/test', (req, res) => {
   res.json({ 
     success: true,
     message: 'API is working!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    database: 'MongoDB Atlas Cloud',
+    connection: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
   });
 });
 
 // Socket.io for real-time alerts
+const io = socketIo(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -123,8 +162,10 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 GBV App: https://gbv-fk4g.onrender.com/app`);
-  console.log(`👥 Trusted Contact: https://gbv-fk4g.onrender.com/trusted-contact`);
-  console.log(`🔧 API Server: https://gbv-fk4g.onrender.com/api`);
-  console.log(`❤️ Health Check: https://gbv-fk4g.onrender.com/health`);
+  console.log('📱 GBV App: https://gbv-fk4g.onrender.com/app');
+  console.log('👥 Trusted Contact: https://gbv-fk4g.onrender.com/trusted-contact');
+  console.log('🔧 API Server: https://gbv-fk4g.onrender.com/api');
+  console.log('❤️ Health Check: https://gbv-fk4g.onrender.com/health');
+  console.log('📊 DB Status: https://gbv-fk4g.onrender.com/api/db-status');
+  console.log('💾 Database: MongoDB Atlas Cloud');
 });
