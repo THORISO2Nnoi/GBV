@@ -2,7 +2,7 @@
   "name": "gbv-support-system",
   "version": "1.0.0",
   "description": "GBV Support and Safety System with Trusted Contact Alerts",
-  "main": "server/index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server/index.js",
