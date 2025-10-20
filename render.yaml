@@ -5,13 +5,13 @@ services:
     env: node
     plan: free
     buildCommand: npm install
-    startCommand: cd server && npm start
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        value: mongodb+srv://NNOI:THORISO2@cluster0.amrhd90.mongodb.net/gbv_support?retryWrites=true&w=majority&appName=Cluster0
+        value: mongodb+srv://NNOI:NNOI2@cluster0.amrhd90.mongodb.net/gbv_support?retryWrites=true&w=majority&appName=Cluster0
       - key: JWT_SECRET
-        value: gbv_support_system_secret_key_2024_production
+        value: gbv_secret_key_2024
       - key: PORT
         value: 10000

@@ -5,6 +5,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const fs = require('fs');
+require('./server/index.js');
 
 // Import routes
 const authRoutes = require('./routes/auth');
