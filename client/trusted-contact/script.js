@@ -1,4 +1,3 @@
-// Updated Trusted Contact App JavaScript with Fixed Alert Reception
 const API_BASE = window.location.hostname.includes('localhost') 
     ? 'http://localhost:3000/api' 
     : '/api';
@@ -44,7 +43,7 @@ async function handleContactLogin(e) {
     const password = document.getElementById('contact-password').value;
 
     try {
-        const response = await fetch(`${API_BASE}/contact-auth/login`, {
+        const response = await fetch(`${API_BASE}/auth/contact-auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -96,7 +95,7 @@ async function loadContactAlerts() {
     
     try {
         const token = localStorage.getItem('gbv_contact_token');
-        const response = await fetch(`${API_BASE}/contact-auth/alerts`, {
+        const response = await fetch(`${API_BASE}/alerts/contact-auth/alerts`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -108,7 +107,6 @@ async function loadContactAlerts() {
             displayAlerts(alerts);
             updateStats(alerts);
             hideLoadingState();
-            console.log(`📋 Loaded ${alerts.length} alerts for contact`);
         } else {
             showErrorState('Failed to load alerts');
         }
@@ -118,28 +116,12 @@ async function loadContactAlerts() {
     }
 }
 
-// Enhanced displayAlerts function to show contact-specific alerts
 function displayAlerts(alerts) {
     const alertContainer = document.getElementById('alerts-container');
     const noAlerts = document.getElementById('no-alerts');
     const alertCount = document.getElementById('alert-count');
     
-    // Also get locally stored alerts
-    const localAlerts = JSON.parse(localStorage.getItem('gbv_contact_alerts') || '[]');
-    
-    // Combine and deduplicate alerts
-    const allAlerts = [...alerts, ...localAlerts].reduce((unique, alert) => {
-        const alertId = alert._id || alert.alertId;
-        if (!unique.some(a => (a._id || a.alertId) === alertId)) {
-            unique.push(alert);
-        }
-        return unique;
-    }, []);
-    
-    const activeAlerts = allAlerts.filter(alert => 
-        alert.status === 'active' || 
-        (alert.status !== 'resolved' && alert.status !== 'closed')
-    );
+    const activeAlerts = alerts.filter(alert => alert.status === 'active');
     
     if (activeAlerts.length === 0) {
         showNoAlerts();
@@ -149,16 +131,9 @@ function displayAlerts(alerts) {
     noAlerts.classList.add('hidden');
     alertCount.textContent = activeAlerts.length;
     
-    // Sort alerts by creation date (newest first)
-    const sortedAlerts = activeAlerts.sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.receivedAt);
-        const dateB = new Date(b.createdAt || b.receivedAt);
-        return dateB - dateA;
-    });
+    const sortedAlerts = activeAlerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     alertContainer.innerHTML = sortedAlerts.map(alert => createAlertHTML(alert)).join('');
-    
-    console.log(`📋 Displayed ${activeAlerts.length} active alerts`);
 }
 
 function createAlertHTML(alert) {
@@ -189,7 +164,6 @@ function createAlertHTML(alert) {
             <div class="alert-details">
                 <p><strong>Location:</strong> ${location}</p>
                 ${alert.message ? `<p><strong>Message:</strong> ${alert.message}</p>` : ''}
-                ${alert.emergencyType ? `<p><strong>Emergency Type:</strong> ${alert.emergencyType}</p>` : ''}
             </div>
             
             <div class="alert-actions">
@@ -236,19 +210,15 @@ function showNoAlerts() {
 }
 
 function showLoadingState() {
-    document.getElementById('alerts-loading').classList.remove('hidden');
-    document.getElementById('alerts-error').classList.add('hidden');
-    document.getElementById('no-alerts').classList.add('hidden');
+    // Add loading state if needed
 }
 
 function hideLoadingState() {
-    document.getElementById('alerts-loading').classList.add('hidden');
+    // Hide loading state if needed
 }
 
 function showErrorState(message) {
-    document.getElementById('alerts-loading').classList.add('hidden');
-    document.getElementById('alerts-error').classList.remove('hidden');
-    document.getElementById('alerts-error').querySelector('p').textContent = message;
+    // Show error state if needed
 }
 
 function callUser(phoneNumber, userName) {
@@ -260,21 +230,16 @@ function contactAuthorities(userName, location) {
     alert(`Contacting local authorities...\n\nEmergency information for ${userName} would be shared automatically.${locationInfo}`);
 }
 
-// Enhanced updateAlertStatus function for contacts
 async function updateAlertStatus(alertId, status) {
     if (updatingAlerts.has(alertId)) {
-        console.log('⚠️ Alert update already in progress for:', alertId);
+        console.log('Alert update already in progress for:', alertId);
         return;
     }
     
     updatingAlerts.add(alertId);
     
-    // Update local storage first for immediate feedback
-    updateLocalAlertStatus(alertId, status);
-    
     try {
         const token = localStorage.getItem('gbv_contact_token');
-        console.log(`📝 Updating alert ${alertId} to status: ${status}`);
         
         const response = await fetch(`${API_BASE}/alerts/${alertId}/status`, {
             method: 'PATCH',
@@ -293,13 +258,8 @@ async function updateAlertStatus(alertId, status) {
 
         if (response.ok) {
             const updatedAlert = await response.json();
-            console.log(`✅ Alert status updated to: ${status}`);
             showNotification(`Status updated to: ${status}`);
             
-            // Update local storage with server response
-            updateLocalAlertStatus(alertId, status, updatedAlert);
-            
-            // Notify via socket
             if (socket) {
                 socket.emit('alert-status-update', {
                     alertId: alertId,
@@ -315,34 +275,13 @@ async function updateAlertStatus(alertId, status) {
         }
         
     } catch (error) {
-        console.error('❌ Error updating status:', error);
+        console.error('Error updating status:', error);
         showNotification('Error updating status. Please try again.');
-        
-        // Revert local status on error
-        updateLocalAlertStatus(alertId, 'active');
     } finally {
-        // Remove from updating set and reload
         setTimeout(() => {
             updatingAlerts.delete(alertId);
             loadContactAlerts();
         }, 1000);
-    }
-}
-
-function updateLocalAlertStatus(alertId, status, serverData = null) {
-    const contactAlerts = JSON.parse(localStorage.getItem('gbv_contact_alerts') || '[]');
-    const alertIndex = contactAlerts.findIndex(alert => alert.alertId === alertId);
-    
-    if (alertIndex !== -1) {
-        contactAlerts[alertIndex].status = status;
-        contactAlerts[alertIndex].lastUpdated = new Date().toISOString();
-        contactAlerts[alertIndex].responded = status !== 'active';
-        
-        if (serverData) {
-            contactAlerts[alertIndex].serverResponse = serverData;
-        }
-        
-        localStorage.setItem('gbv_contact_alerts', JSON.stringify(contactAlerts));
     }
 }
 
@@ -351,154 +290,50 @@ function initializeContactSocket() {
         ? 'http://localhost:3000' 
         : window.location.origin;
     
-    console.log('🔌 Connecting to socket server:', socketUrl);
-    
     socket = io(socketUrl, {
         transports: ['websocket', 'polling']
     });
     
     if (currentContact && currentContact.id) {
         socket.emit('join-contact-room', currentContact.id);
-        console.log('✅ Joined contact room:', currentContact.id);
     }
     
-    // FIXED: Listen for new alerts with proper event handling
     socket.on('new-alert', (alertData) => {
-        console.log('🚨 NEW ALERT RECEIVED VIA SOCKET:', alertData);
+        console.log('NEW ALERT RECEIVED:', alertData);
         handleNewAlert(alertData);
     });
 
-    // Also listen for broadcast alerts
     socket.on('new-alert-broadcast', (alertData) => {
-        console.log('📢 BROADCAST ALERT RECEIVED:', alertData);
+        console.log('BROADCAST ALERT RECEIVED:', alertData);
         handleNewAlert(alertData);
     });
     
     socket.on('alert-status-update', (updateData) => {
-        console.log('📝 Alert status updated:', updateData);
+        console.log('Alert status updated:', updateData);
         showNotification(`Update: ${updateData.contactName} marked alert as ${updateData.status}`);
         loadContactAlerts();
     });
 
     socket.on('connect', () => {
-        console.log('✅ Connected to server as trusted contact');
+        console.log('Connected to server as trusted contact');
         showNotification('Connected to emergency alert system');
     });
 
     socket.on('disconnect', () => {
-        console.log('❌ Disconnected from server');
+        console.log('Disconnected from server');
         showNotification('Disconnected from server - alerts may be delayed');
     });
-
-    socket.on('connect_error', (error) => {
-        console.error('❌ Socket connection error:', error);
-    });
-
-    // Test socket connection
-    socket.emit('ping', { message: 'Hello from trusted contact app' });
-    socket.on('pong', (data) => {
-        console.log('📡 Socket test successful:', data);
-    });
 }
 
-// Enhanced alert handling for trusted contacts
 function handleNewAlert(alertData) {
-    console.log('🔄 Processing new alert:', alertData);
+    console.log('Processing new alert:', alertData);
     
-    // Check if this alert is for this specific contact
-    const isForThisContact = alertData.trustedContacts && 
-        alertData.trustedContacts.some(contact => 
-            contact.email === currentContact.email || 
-            contact.phone === currentContact.phone
-        );
-    
-    if (!isForThisContact) {
-        console.log('⚠️ Alert not for this contact, ignoring');
-        return;
-    }
-    
-    // Play emergency sound
     playEmergencySound();
-    
-    // Show emergency notification
     showEmergencyNotification(alertData);
-    
-    // Store alert locally
-    storeContactAlert(alertData);
-    
-    // Reload alerts to show the new one
     loadContactAlerts();
     
-    // Send acknowledgment back to server
-    sendAlertAcknowledgment(alertData);
-    
-    // Vibrate if supported
     if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200, 100, 200]);
-    }
-}
-
-function storeContactAlert(alertData) {
-    const contactAlerts = JSON.parse(localStorage.getItem('gbv_contact_alerts') || '[]');
-    
-    // Check if alert already exists
-    const existingIndex = contactAlerts.findIndex(alert => 
-        alert.alertId === alertData._id || alert.alertId === alertData.alertId
-    );
-    
-    if (existingIndex === -1) {
-        contactAlerts.push({
-            alertId: alertData._id || alertData.alertId,
-            userId: alertData.userId,
-            userName: alertData.userName,
-            userPhone: alertData.userPhone,
-            location: alertData.location,
-            coordinates: alertData.coordinates,
-            message: alertData.message,
-            emergencyType: alertData.emergencyType,
-            status: 'active',
-            receivedAt: new Date().toISOString(),
-            responded: false
-        });
-        
-        localStorage.setItem('gbv_contact_alerts', JSON.stringify(contactAlerts));
-        console.log('✅ Alert stored locally for contact');
-    }
-}
-
-async function sendAlertAcknowledgment(alertData) {
-    try {
-        const token = localStorage.getItem('gbv_contact_token');
-        const alertId = alertData._id || alertData.alertId;
-        
-        const response = await fetch(`${API_BASE}/alerts/${alertId}/acknowledge`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                contactId: currentContact.id,
-                contactName: currentContact.name,
-                timestamp: new Date().toISOString()
-            })
-        });
-        
-        if (response.ok) {
-            console.log('✅ Alert acknowledgment sent to server');
-            
-            // Notify via socket that this contact is responding
-            if (socket) {
-                socket.emit('contact-responding', {
-                    alertId: alertId,
-                    contactId: currentContact.id,
-                    contactName: currentContact.name,
-                    userId: alertData.userId
-                });
-            }
-        }
-    } catch (error) {
-        console.error('Error sending acknowledgment:', error);
     }
 }
 
@@ -508,11 +343,11 @@ function playEmergencySound() {
         if (emergencySound) {
             emergencySound.volume = 0.7;
             emergencySound.play().catch(e => {
-                console.log('🔇 Sound play prevented:', e);
+                console.log('Sound play prevented:', e);
             });
         }
     } catch (error) {
-        console.log('🔇 Sound play error:', error);
+        console.log('Sound play error:', error);
     }
 }
 
@@ -520,30 +355,23 @@ function showEmergencyNotification(alertData) {
     const userName = alertData.userName || 'User';
     const location = alertData.location || 'Location unknown';
     
-    console.log('🔄 Showing emergency notification for:', userName);
-    
-    // Create browser notification
     if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('🚨 EMERGENCY ALERT - Safety Shield', {
             body: `${userName} needs your help!\nLocation: ${location}\nClick to view details.`,
-            icon: '/icon.png',
             requireInteraction: true,
-            tag: 'emergency-alert',
-            vibrate: [200, 100, 200]
+            tag: 'emergency-alert'
         });
     } else if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().then(permission => {
             if (permission === 'granted') {
                 new Notification('🚨 EMERGENCY ALERT - Safety Shield', {
                     body: `${userName} needs your help!`,
-                    icon: '/icon.png',
                     requireInteraction: true
                 });
             }
         });
     }
     
-    // Show on-screen notification
     showNotification(`🚨 EMERGENCY ALERT!\n\n${userName} needs your help immediately!\nLocation: ${location}\n\nPlease respond quickly!`);
 }
 
@@ -569,7 +397,6 @@ function showNotification(message) {
     notificationDiv.innerHTML = message.replace(/\n/g, '<br>');
     document.body.appendChild(notificationDiv);
     
-    // Make notification clickable to focus the app
     notificationDiv.addEventListener('click', () => {
         window.focus();
         if (notificationDiv.parentNode) {
@@ -581,62 +408,31 @@ function showNotification(message) {
         if (notificationDiv.parentNode) {
             document.body.removeChild(notificationDiv);
         }
-    }, 10000); // Show for 10 seconds for emergencies
+    }, 10000);
 }
 
-function showEmergencyNotification(alertData) {
-    const userName = alertData.userName || 'User';
-    
-    console.log('🔄 Showing emergency notification for:', userName);
-    
-    // Create browser notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('🚨 EMERGENCY ALERT', {
-            body: `${userName} needs your help! Location: ${alertData.location}`,
-            icon: '/icon.png',
-            requireInteraction: true,
-            tag: 'emergency-alert'
-        });
-    } else if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-                new Notification('🚨 EMERGENCY ALERT', {
-                    body: `${userName} needs your help!`,
-                    icon: '/icon.png',
-                    requireInteraction: true
-                });
-            }
-        });
-    }
-    
-    // Show on-screen notification
-    showNotification(`🚨 EMERGENCY ALERT!\n\n${userName} needs your help immediately!\nLocation: ${alertData.location}`);
-}
-
-function showNotification(message) {
-    const notificationDiv = document.createElement('div');
-    notificationDiv.style.cssText = `
+function showAlert(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        background: var(--danger);
+        background: #4CAF50;
         color: white;
         padding: 15px 20px;
         border-radius: 8px;
         z-index: 1000;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         max-width: 300px;
-        animation: slideIn 0.3s ease-out;
-        font-weight: bold;
     `;
-    notificationDiv.textContent = message;
-    document.body.appendChild(notificationDiv);
+    alertDiv.textContent = message;
+    document.body.appendChild(alertDiv);
     
     setTimeout(() => {
-        if (notificationDiv.parentNode) {
-            document.body.removeChild(notificationDiv);
+        if (alertDiv.parentNode) {
+            document.body.removeChild(alertDiv);
         }
-    }, 10000); // Show for 10 seconds for emergencies
+    }, 5000);
 }
 
 // Quick Actions Functions
@@ -745,7 +541,6 @@ function callNumber(number) {
     
     if (confirmed) {
         showNotification(`Connecting to ${number}...`);
-        console.log(`Call attempted to: ${number}`);
     }
 }
 
@@ -761,14 +556,7 @@ function hideModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
 
-function showNoAlerts() {
-    document.getElementById('no-alerts').classList.remove('hidden');
-    document.getElementById('alerts-container').innerHTML = '';
-    document.getElementById('alert-count').textContent = '0';
-    updateStats([]);
-}
-
-// Request notification permission on page load
+// Request notification permission
 document.addEventListener('DOMContentLoaded', function() {
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();

@@ -1,36 +1,41 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
+const Contact = require('../models/Contact');
 const router = express.Router();
 
-// Register
+// User registration
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
     
-    // Validate required fields
     if (!name || !email || !password || !phone) {
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'All fields are required' 
+      });
     }
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: email.toLowerCase() });
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'User already exists with this email' 
+      });
     }
 
-    const user = await User.create({
-      name,
-      email,
-      password,
-      phone
+    const user = await User.create({ 
+      name: name.trim(), 
+      email: email.toLowerCase().trim(), 
+      password, 
+      phone: phone.trim() 
     });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'gbv_secret', {
-      expiresIn: '30d',
-    });
+    const token = jwt.sign({ id: user._id }, 'gbv_secret', { expiresIn: '30d' });
 
     res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
       token,
       user: {
         id: user._id,
@@ -39,31 +44,49 @@ router.post('/register', async (req, res) => {
         phone: user.phone
       }
     });
+
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during registration' 
+    });
   }
 });
 
-// Login
+// User login
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email and password are required' 
+      });
     }
 
-    const user = await User.findOne({ email });
-    if (!user || !(await user.correctPassword(password, user.password))) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid email or password' 
+      });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'gbv_secret', {
-      expiresIn: '30d',
-    });
+    const isPasswordValid = await user.correctPassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid email or password' 
+      });
+    }
+
+    const token = jwt.sign({ id: user._id }, 'gbv_secret', { expiresIn: '30d' });
 
     res.json({
+      success: true,
+      message: 'Login successful',
       token,
       user: {
         id: user._id,
@@ -74,7 +97,69 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during login' 
+    });
+  }
+});
+
+// Contact login
+router.post('/contact-auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email and password are required' 
+      });
+    }
+
+    const contact = await Contact.findOne({ email: email.toLowerCase() });
+    if (!contact) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid email or password' 
+      });
+    }
+
+    const isPasswordValid = await contact.correctPassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid email or password' 
+      });
+    }
+
+    const user = await User.findById(contact.userId);
+
+    const token = jwt.sign({ 
+      id: contact._id, 
+      type: 'contact',
+      userId: contact.userId 
+    }, 'gbv_secret', { expiresIn: '30d' });
+
+    res.json({
+      success: true,
+      message: 'Contact login successful',
+      token,
+      contact: {
+        id: contact._id,
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        relationship: contact.relationship,
+        userName: user ? user.name : 'User',
+        userPhone: user ? user.phone : 'Unknown'
+      }
+    });
+  } catch (error) {
+    console.error('Contact login error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during login' 
+    });
   }
 });
 

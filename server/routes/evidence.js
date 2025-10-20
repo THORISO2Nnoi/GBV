@@ -1,42 +1,45 @@
 const express = require('express');
-const router = express.Router();
-const Evidence = require('../models/Evidence');
-const auth = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const Evidence = require('../models/Evidence');
+const { auth } = require('../middleware/auth');
+
+const router = express.Router();
 
 // Configure multer for file uploads
+const evidenceDir = path.join(__dirname, '../../public/uploads/evidence');
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/evidence/');
+    cb(null, evidenceDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, req.user.id + '-' + uniqueSuffix + path.extname(file.originalname));
+    const extension = path.extname(file.originalname);
+    cb(null, 'evidence-' + uniqueSuffix + extension);
   }
 });
 
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 10 * 1024 * 1024
   },
   fileFilter: function (req, file, cb) {
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|mp3|m4a|wav/;
+    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|mp3|m4a|wav|mp4|avi|mov|txt/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
 
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only images, documents, and audio files are allowed'));
+      cb(new Error('Only images, documents, audio, and video files are allowed'));
     }
   }
 });
 
-// @route   POST /api/evidence
-// @desc    Create new evidence
-// @access  Private
+// Create evidence
 router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
     const {
@@ -49,232 +52,170 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       tags
     } = req.body;
 
-    // Validate required fields
     if (!type || !title || !incidentDate) {
       return res.status(400).json({ 
-        error: 'Type, title, and incident date are required' 
+        success: false,
+        message: 'Type, title, and incident date are required' 
       });
     }
 
     const evidenceData = {
-      userId: req.user.id,
+      userId: req.user._id,
       type,
       title,
       description: description || title,
       notes: notes || '',
       incidentDate: new Date(incidentDate),
       location: location || '',
-      tags: tags ? tags.split(',') : [],
-      filePath: req.file ? req.file.path : null,
-      fileName: req.file ? req.file.originalname : null,
-      fileSize: req.file ? req.file.size : null,
-      mimeType: req.file ? req.file.mimetype : null
+      tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+      isEncrypted: true
     };
 
-    const evidence = new Evidence(evidenceData);
-    await evidence.save();
+    if (req.file) {
+      evidenceData.filePath = req.file.path;
+      evidenceData.fileName = req.file.originalname;
+      evidenceData.fileSize = req.file.size;
+      evidenceData.mimeType = req.file.mimetype;
+    }
 
-    // Populate user data for response
-    await evidence.populate('userId', 'name email');
+    const evidence = await Evidence.create(evidenceData);
 
     res.status(201).json({
-      message: 'Evidence saved successfully',
-      evidence: evidence
+      success: true,
+      message: 'Evidence saved securely',
+      evidence: evidence.toSafeObject()
     });
 
   } catch (error) {
     console.error('Evidence creation error:', error);
     res.status(500).json({ 
-      error: 'Server error: ' + error.message 
+      success: false,
+      message: 'Server error saving evidence' 
     });
   }
 });
 
-// @route   GET /api/evidence
-// @desc    Get all evidence for user
-// @access  Private
+// Get all evidence for user
 router.get('/', auth, async (req, res) => {
   try {
-    const { page = 1, limit = 10, type, sortBy = 'incidentDate', order = 'desc' } = req.query;
+    const { type, search, sortBy = 'incidentDate', order = 'desc' } = req.query;
     
-    const filter = { userId: req.user.id };
+    const filter = { userId: req.user._id };
+    
     if (type && type !== 'all') {
       filter.type = type;
     }
+    
+    if (search && search.trim() !== '') {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { notes: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ];
+    }
 
     const sortOptions = {};
-    sortOptions[sortBy] = order === 'desc' ? -1 : 1;
+    const sortField = sortBy === 'createdAt' ? 'createdAt' : 'incidentDate';
+    sortOptions[sortField] = order === 'desc' ? -1 : 1;
 
     const evidence = await Evidence.find(filter)
+      .select('-filePath -encryptionKey')
       .sort(sortOptions)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('userId', 'name email');
+      .limit(50);
 
-    const total = await Evidence.countDocuments(filter);
+    const evidenceWithUrls = evidence.map(item => {
+      const evidenceObj = item.toObject();
+      if (evidenceObj.fileName) {
+        evidenceObj.fileUrl = `/uploads/evidence/${path.basename(item.filePath)}`;
+      }
+      return evidenceObj;
+    });
 
     res.json({
-      evidence,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      totalEvidence: total
+      success: true,
+      evidence: evidenceWithUrls,
+      totalEvidence: evidence.length
     });
 
   } catch (error) {
-    console.error('Evidence fetch error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Get evidence error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error fetching evidence' 
+    });
   }
 });
 
-// @route   GET /api/evidence/:id
-// @desc    Get single evidence item
-// @access  Private
+// Get single evidence item
 router.get('/:id', auth, async (req, res) => {
   try {
     const evidence = await Evidence.findOne({
       _id: req.params.id,
-      userId: req.user.id
-    }).populate('userId', 'name email');
-
-    if (!evidence) {
-      return res.status(404).json({ error: 'Evidence not found' });
-    }
-
-    res.json(evidence);
-
-  } catch (error) {
-    console.error('Evidence fetch error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// @route   PUT /api/evidence/:id
-// @desc    Update evidence item
-// @access  Private
-router.put('/:id', auth, upload.single('file'), async (req, res) => {
-  try {
-    const {
-      type,
-      title,
-      description,
-      notes,
-      incidentDate,
-      location,
-      tags
-    } = req.body;
-
-    const evidence = await Evidence.findOne({
-      _id: req.params.id,
-      userId: req.user.id
+      userId: req.user._id
     });
 
     if (!evidence) {
-      return res.status(404).json({ error: 'Evidence not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Evidence not found'
+      });
     }
 
-    // Update fields
-    if (type) evidence.type = type;
-    if (title) evidence.title = title;
-    if (description) evidence.description = description;
-    if (notes !== undefined) evidence.notes = notes;
-    if (incidentDate) evidence.incidentDate = new Date(incidentDate);
-    if (location !== undefined) evidence.location = location;
-    if (tags) evidence.tags = tags.split(',');
-
-    // Handle file update
-    if (req.file) {
-      evidence.filePath = req.file.path;
-      evidence.fileName = req.file.originalname;
-      evidence.fileSize = req.file.size;
-      evidence.mimeType = req.file.mimetype;
-    }
-
-    evidence.updatedAt = new Date();
-
+    evidence.lastAccessed = new Date();
     await evidence.save();
-    await evidence.populate('userId', 'name email');
+
+    const evidenceObj = evidence.toSafeObject();
+    if (evidence.fileName) {
+      evidenceObj.fileUrl = `/uploads/evidence/${path.basename(evidence.filePath)}`;
+    }
 
     res.json({
-      message: 'Evidence updated successfully',
-      evidence: evidence
+      success: true,
+      evidence: evidenceObj
     });
 
   } catch (error) {
-    console.error('Evidence update error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Get evidence detail error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching evidence details'
+    });
   }
 });
 
-// @route   DELETE /api/evidence/:id
-// @desc    Delete evidence item
-// @access  Private
+// Delete evidence
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const evidence = await Evidence.findOneAndDelete({
+    const evidence = await Evidence.findOne({
       _id: req.params.id,
-      userId: req.user.id
+      userId: req.user._id
     });
 
     if (!evidence) {
-      return res.status(404).json({ error: 'Evidence not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Evidence not found'
+      });
     }
 
-    res.json({ message: 'Evidence deleted successfully' });
+    if (evidence.filePath && fs.existsSync(evidence.filePath)) {
+      fs.unlinkSync(evidence.filePath);
+    }
 
-  } catch (error) {
-    console.error('Evidence deletion error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// @route   GET /api/evidence/stats/summary
-// @desc    Get evidence statistics
-// @access  Private
-router.get('/stats/summary', auth, async (req, res) => {
-  try {
-    const totalEvidence = await Evidence.countDocuments({ userId: req.user.id });
-    
-    const evidenceByType = await Evidence.aggregate([
-      { $match: { userId: req.user.id } },
-      { $group: { _id: '$type', count: { $sum: 1 } } }
-    ]);
-
-    const recentEvidence = await Evidence.find({ userId: req.user.id })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('title type incidentDate createdAt');
+    await Evidence.findByIdAndDelete(req.params.id);
 
     res.json({
-      totalEvidence,
-      evidenceByType,
-      recentEvidence
+      success: true,
+      message: 'Evidence deleted successfully'
     });
 
   } catch (error) {
-    console.error('Evidence stats error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// @route   GET /api/evidence/file/:id
-// @desc    Serve evidence file
-// @access  Private
-router.get('/file/:id', auth, async (req, res) => {
-  try {
-    const evidence = await Evidence.findOne({
-      _id: req.params.id,
-      userId: req.user.id
+    console.error('Delete evidence error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error deleting evidence'
     });
-
-    if (!evidence || !evidence.filePath) {
-      return res.status(404).json({ error: 'File not found' });
-    }
-
-    res.sendFile(path.resolve(evidence.filePath));
-
-  } catch (error) {
-    console.error('File serve error:', error);
-    res.status(500).json({ error: 'Server error' });
   }
 });
 

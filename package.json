@@ -1,27 +1,28 @@
 {
-  "name": "gbv-support-system",
+  "name": "gbv-support-app",
   "version": "1.0.0",
-  "description": "GBV Support and Safety System with Trusted Contact Alerts",
-  "main": "index.js",
+  "description": "GBV Support and Safety Application",
+  "main": "server/server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "build": "npm install",
-    "render-build": "npm install",
-    "render-start": "node index.js"
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
-    "cors": "^2.8.5",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
-    "socket.io": "^4.7.2"
+    "multer": "1.4.5-lts.1",
+    "socket.io": "^4.7.2",
+    "cors": "^2.8.5",
+    "path": "^0.12.7",
+    "crypto": "^1.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "keywords": ["gbv", "safety", "emergency", "support"],
+  "author": "GBV Support Team",
+  "license": "MIT"
 }

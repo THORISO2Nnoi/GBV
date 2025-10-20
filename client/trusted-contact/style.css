@@ -287,6 +287,7 @@ input {
     padding: 1.5rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     border-left: 4px solid var(--danger);
+    animation: slideIn 0.5s ease-out;
 }
 
 .alert-header {
@@ -405,6 +406,29 @@ input {
 
 .status-btn:disabled {
     cursor: not-allowed;
+}
+
+/* New Alert Animation */
+.new-alert {
+    animation: pulse 2s infinite;
+    border: 2px solid var(--danger);
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 20, 60, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 20, 60, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 20, 60, 0); }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 /* Empty State */
@@ -617,4 +641,24 @@ input {
     .alert-actions {
         grid-template-columns: 1fr;
     }
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.error-message {
+    background: #ffebee;
+    color: #c62828;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    border-left: 4px solid #c62828;
+}
+
+/* Emergency Sound */
+.emergency-sound {
+    display: none;
 }

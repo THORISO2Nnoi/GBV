@@ -1,32 +1,56 @@
 const express = require('express');
 const Alert = require('../models/Alert');
-const User = require('../models/User');
-
+const Contact = require('../models/Contact');
+const { auth, contactAuth } = require('../middleware/auth');
 const router = express.Router();
 
 // Create emergency alert
-router.post('/emergency', async (req, res) => {
+router.post('/emergency', auth, async (req, res) => {
   try {
-    const { location, message } = req.body;
+    const { location, coordinates, message } = req.body;
     
-    // For demo, we'll create an alert without auth
-    const user = await User.findOne(); // Get any user for demo
-    
-    if (!user) {
-      return res.status(400).json({ message: 'No users found. Please register first.' });
-    }
+    const contacts = await Contact.find({ userId: req.user._id });
 
-    const alert = await Alert.create({
-      userId: user._id,
+    const alertData = {
+      userId: req.user._id,
+      userName: req.user.name,
+      userPhone: req.user.phone,
       type: 'emergency',
       location: location || 'Location not specified',
+      coordinates: coordinates || null,
       message: message || 'Emergency assistance needed',
-      trustedContactsNotified: user.emergencyContacts || []
+      trustedContactsNotified: contacts.map(contact => ({
+        contactId: contact._id,
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        notifiedAt: new Date(),
+        responded: false
+      }))
+    };
+
+    const alert = await Alert.create(alertData);
+
+    // Notify contacts via socket
+    contacts.forEach(contact => {
+      const alertNotification = {
+        alertId: alert._id,
+        userId: req.user._id,
+        userName: req.user.name,
+        userPhone: req.user.phone,
+        location: alert.location,
+        message: alert.message,
+        timestamp: alert.createdAt,
+        contactId: contact._id
+      };
+
+      req.io.to(`contact_${contact._id}`).emit('new-alert', alertNotification);
     });
 
-    console.log(`Emergency alert created for user ${user.name}`);
-
-    res.status(201).json(alert);
+    res.status(201).json({
+      ...alert.toObject(),
+      contactsNotified: contacts.length
+    });
   } catch (error) {
     console.error('Alert creation error:', error);
     res.status(500).json({ message: 'Server error creating alert' });
@@ -34,14 +58,9 @@ router.post('/emergency', async (req, res) => {
 });
 
 // Get user alerts
-router.get('/my-alerts', async (req, res) => {
+router.get('/my-alerts', auth, async (req, res) => {
   try {
-    const user = await User.findOne(); // Demo - get any user
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const alerts = await Alert.find({ userId: user._id })
+    const alerts = await Alert.find({ userId: req.user._id })
       .sort({ createdAt: -1 });
     
     res.json(alerts);
@@ -52,7 +71,7 @@ router.get('/my-alerts', async (req, res) => {
 });
 
 // Update alert status
-router.patch('/:alertId/status', async (req, res) => {
+router.patch('/:alertId/status', contactAuth, async (req, res) => {
   try {
     const { status, notes } = req.body;
     
@@ -60,27 +79,51 @@ router.patch('/:alertId/status', async (req, res) => {
       req.params.alertId,
       { 
         status,
-        ...(status === 'resolved' && { resolvedAt: new Date() }),
         $push: {
           responseUpdates: {
-            contactId: 'demo_contact',
+            contactId: req.contact._id,
+            contactName: req.contact.name,
             action: `Status changed to ${status}`,
             notes: notes || `Updated by trusted contact`,
-            timestamp: new Date()
+            timestamp: new Date(),
+            status: status
           }
         }
       },
       { new: true }
-    );
+    ).populate('userId', 'name phone');
 
     if (!alert) {
       return res.status(404).json({ message: 'Alert not found' });
     }
 
+    req.io.to(`user_${alert.userId._id}`).emit('alert-status-update', {
+      alertId: alert._id,
+      status: status,
+      contactName: req.contact.name,
+      timestamp: new Date()
+    });
+
     res.json(alert);
   } catch (error) {
     console.error('Update alert error:', error);
     res.status(500).json({ message: 'Server error updating alert' });
+  }
+});
+
+// Get contact alerts
+router.get('/contact-auth/alerts', contactAuth, async (req, res) => {
+  try {
+    const alerts = await Alert.find({ 
+      'trustedContactsNotified.contactId': req.contact._id 
+    })
+      .populate('userId', 'name phone email')
+      .sort({ createdAt: -1 });
+    
+    res.json(alerts);
+  } catch (error) {
+    console.error('Get contact alerts error:', error);
+    res.status(500).json({ message: 'Server error fetching alerts' });
   }
 });
 
