@@ -933,7 +933,7 @@
                     <span class="logo-icon">🛡️</span>
                     <h1>Safety Shield</h1>
                 </div>
-                <form id="login-form">
+                <form id="login-form" onsubmit="handleLogin(event)">
                     <h2>Welcome Back</h2>
                     <input type="email" id="login-email" placeholder="Email" required>
                     <input type="password" id="login-password" placeholder="Password" required>
@@ -1859,29 +1859,60 @@
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
 
+            console.log("🟡 Attempting login with:", { email, password }); // 1️⃣ Debug: log credentials
+
             try {
+                const res = await fetch('http://localhost:10000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+                });
+
+                console.log("🟢 Response received:", res); // 2️⃣ Debug: response object
+
+                const data = await res.json();
+                console.log("🟢 Response JSON:", data); // 3️⃣ Debug: JSON body
+
+                if (res.ok) {
+                // Save token and user info in localStorage
+                localStorage.setItem('gbv_token', data.token);
+                localStorage.setItem('gbv_user', JSON.stringify(data.user));
+
+                console.log("✅ Login successful! Token:", data.token);
+                showScreen('app');
+                showAlert('Login successful!');
+                } else {
+                console.error("❌ Login failed:", data.message);
+                alert("Login failed: " + data.message);
+                }
+            } catch (err) {
+                console.error("🔥 Connection error during login:", err.message);
+                alert('Error: ' + err.message);
+            }
+            /*try {
                 // Mock login for demo - in real app, this would call your backend
                 if (email && password) {
-                    const mockUser = {
-                        id: 'user_' + Date.now(),
-                        name: email.split('@')[0],
-                        email: email,
-                        phone: '+1234567890'
-                    };
-                    
-                    localStorage.setItem('gbv_token', 'mock_jwt_token_' + Date.now());
-                    localStorage.setItem('gbv_user', JSON.stringify(mockUser));
-                    currentUser = mockUser;
+                const response = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('gbv_token', data.token);
+                    localStorage.setItem('gbv_user', JSON.stringify(data.user));
                     showScreen('app');
                     initializeSocket();
                     loadUserData();
                     showAlert('Login successful!');
                 } else {
-                    alert('Please enter both email and password');
+                    alert(data.message || 'Login failed');
                 }
+            }
+
             } catch (error) {
                 alert('Login error: ' + error.message);
-            }
+            }*/
         }
 
         async function handleRegister(e) {
@@ -1890,10 +1921,32 @@
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
             const phone = document.getElementById('register-phone').value;
+            console.log("🟡 Attempting to register user:", { name, email, phone }); // 1️⃣ Check that inputs exist
 
             try {
+                const res = await fetch('http://localhost:10000/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password, phone })
+                });
+
+                console.log("🟢 Response received:", res); // 2️⃣ Log response object
+                
+                const data = await res.json();
+                 console.log("🟢 Response JSON:", data); // 3️⃣ Log parsed JSON
+
+                if (res.ok) {
+                localStorage.setItem('gbv_token', data.token);
+                localStorage.setItem('gbv_user', JSON.stringify(data.user));
+
+                 console.log("✅ Registration successful! Token:", data.token); // 4️⃣ Confirm token
+                showScreen('app');
+                showAlert('Registration successful!');
+                } else {
+                alert(data.message);
+                }                
                 // Mock registration for demo
-                if (name && email && password && phone) {
+                /*if (name && email && password && phone) {
                     const mockUser = {
                         id: 'user_' + Date.now(),
                         name: name,
@@ -1901,15 +1954,16 @@
                         phone: phone
                     };
                     
-                    localStorage.setItem('gbv_token', 'mock_jwt_token_' + Date.now());
-                    localStorage.setItem('gbv_user', JSON.stringify(mockUser));
-                    currentUser = mockUser;
-                    showScreen('app');
-                    initializeSocket();
-                    showAlert('Registration successful!');
+                    //localStorage.setItem('gbv_token', 'mock_jwt_token_' + Date.now());
+                    //localStorage.setItem('gbv_user', JSON.stringify(mockUser));
+                    //currentUser = mockUser;
+                    //showScreen('app');
+                    //initializeSocket();
+                    //showAlert('Registration successful!');
                 } else {
                     alert('Please fill all fields');
                 }
+                    */
             } catch (error) {
                 alert('Registration error: ' + error.message);
             }
@@ -2755,5 +2809,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.setupSafeWord = setupSafeWord;
         window.showAddEvidenceModal = showAddEvidenceModal;
     </script>
+
 </body>
 </html>
