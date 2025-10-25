@@ -3,9 +3,10 @@ const crypto = require('crypto');
 const Contact = require('../models/Contact');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
+
 const router = express.Router();
 
-// Create contact
+// Create trusted contact
 router.post('/', auth, async (req, res) => {
   try {
     const { name, phone, email, relationship } = req.body;
@@ -19,6 +20,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'Contact already exists with this email' });
     }
 
+    // Generate temporary password
     const tempPassword = crypto.randomBytes(4).toString('hex');
 
     const contact = await Contact.create({
@@ -31,6 +33,7 @@ router.post('/', auth, async (req, res) => {
       isVerified: true
     });
 
+    // Add to user's emergency contacts
     await User.findByIdAndUpdate(req.user._id, {
       $push: {
         emergencyContacts: {
@@ -51,15 +54,17 @@ router.post('/', auth, async (req, res) => {
         phone: contact.phone,
         relationship: contact.relationship
       },
-      tempPassword
+      tempPassword,
+      message: 'Trusted contact added successfully'
     });
+
   } catch (error) {
     console.error('Create contact error:', error);
     res.status(500).json({ message: 'Server error creating contact' });
   }
 });
 
-// Get all contacts
+// Get user's contacts
 router.get('/', auth, async (req, res) => {
   try {
     const contacts = await Contact.find({ userId: req.user._id });
@@ -82,6 +87,7 @@ router.delete('/:contactId', auth, async (req, res) => {
       return res.status(404).json({ message: 'Contact not found' });
     }
 
+    // Remove from user's emergency contacts
     await User.findByIdAndUpdate(req.user._id, {
       $pull: { emergencyContacts: { contactId: contact._id } }
     });

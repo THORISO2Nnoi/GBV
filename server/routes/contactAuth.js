@@ -15,7 +15,12 @@ router.post('/login', async (req, res) => {
     }
 
     const contact = await Contact.findOne({ email });
-    if (!contact || !(await contact.correctPassword(password, contact.password))) {
+    if (!contact) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    const isPasswordValid = await contact.correctPassword(password);
+    if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
@@ -29,11 +34,12 @@ router.post('/login', async (req, res) => {
       id: contact._id, 
       type: 'contact',
       userId: contact.userId 
-    }, process.env.JWT_SECRET || 'gbv_secret', {
+    }, 'gbv_secret_key_2024', {
       expiresIn: '30d',
     });
 
     res.json({
+      success: true,
       token,
       contact: {
         id: contact._id,
@@ -42,7 +48,8 @@ router.post('/login', async (req, res) => {
         phone: contact.phone,
         relationship: contact.relationship,
         userName: user ? user.name : 'User',
-        userPhone: user ? user.phone : 'Unknown'
+        userPhone: user ? user.phone : 'Unknown',
+        userId: contact.userId
       }
     });
   } catch (error) {
@@ -51,10 +58,9 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Get contact's active alerts
+// Get contact's alerts
 router.get('/alerts', async (req, res) => {
   try {
-    // For demo, get all active alerts
     const Alert = require('../models/Alert');
     const alerts = await Alert.find({
       status: 'active'

@@ -10,7 +10,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
-    const decoded = jwt.verify(token, 'gbv_secret');
+    const decoded = jwt.verify(token, 'gbv_secret_key_2024');
     const user = await User.findById(decoded.id);
     
     if (!user) {
@@ -32,7 +32,7 @@ const contactAuth = async (req, res, next) => {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
-    const decoded = jwt.verify(token, 'gbv_secret');
+    const decoded = jwt.verify(token, 'gbv_secret_key_2024');
     const contact = await Contact.findById(decoded.id);
     
     if (!contact) {

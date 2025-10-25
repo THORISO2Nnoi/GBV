@@ -100,22 +100,4 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Get all users endpoint
-router.get('/users', async (req, res) => {
-  try {
-    const users = await User.find().select('-password');
-    res.json({
-      success: true,
-      count: users.length,
-      users: users
-    });
-  } catch (error) {
-    console.error('Get users error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error fetching users' 
-    });
-  }
-});
-
 module.exports = router;
