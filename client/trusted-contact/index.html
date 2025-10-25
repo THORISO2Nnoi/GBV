@@ -1087,20 +1087,23 @@
             const noAlerts = document.getElementById('no-alerts');
             const alertCount = document.getElementById('alert-count');
             
-            if (alerts.length === 0) {
+            // Filter only active alerts for display
+            const activeAlerts = alerts.filter(alert => alert.status === 'active');
+            
+            if (activeAlerts.length === 0) {
                 showNoAlerts();
                 return;
             }
             
             noAlerts.classList.add('hidden');
-            alertCount.textContent = alerts.length;
+            alertCount.textContent = activeAlerts.length;
             
             // Sort alerts by creation date (newest first)
-            const sortedAlerts = alerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const sortedAlerts = activeAlerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             
             alertContainer.innerHTML = sortedAlerts.map(alert => createAlertHTML(alert)).join('');
             
-            console.log(`📋 Displayed ${alerts.length} alerts in dashboard`);
+            console.log(`📋 Displayed ${activeAlerts.length} active alerts in dashboard`);
         }
 
         function createAlertHTML(alert) {
@@ -1261,19 +1264,24 @@
                     },
                     body: JSON.stringify({
                         status: status,
-                        notes: `Status updated by trusted contact: ${currentContact.name}`
+                        contactId: currentContact.id,
+                        contactName: currentContact.name,
+                        notes: `Status updated by trusted contact: ${currentContact.name}`,
+                        timestamp: new Date().toISOString()
                     })
                 });
 
                 if (response.ok) {
+                    const updatedAlert = await response.json();
                     console.log(`✅ Alert status updated to: ${status}`);
                     showNotification(`Status updated to: ${status}`);
                     
                     if (socket) {
-                        socket.emit('alert-update', {
+                        socket.emit('alert-status-update', {
                             alertId: alertId,
                             status: status,
                             contactName: currentContact.name,
+                            userId: updatedAlert.userId,
                             timestamp: new Date()
                         });
                     }
@@ -1281,32 +1289,21 @@
                     // Reload alerts to show updated status after a delay
                     setTimeout(() => {
                         loadContactAlerts();
-                        // Remove from updating set after successful update and reload
-                        setTimeout(() => {
-                            updatingAlerts.delete(alertId);
-                        }, 2000);
-                    }, 1500);
+                    }, 1000);
                     
                 } else {
                     const error = await response.json();
                     console.error('❌ Failed to update status:', error);
-                    alert('Failed to update status: ' + (error.message || 'Unknown error'));
-                    
-                    // Re-enable buttons on error
-                    setTimeout(() => {
-                        updatingAlerts.delete(alertId);
-                        loadContactAlerts(); // Reload to reset button states
-                    }, 1000);
+                    showNotification('Failed to update status: ' + (error.message || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('❌ Error updating status:', error);
-                alert('Error updating status: ' + error.message);
-                
-                // Re-enable buttons on error
+                showNotification('Error updating status: ' + error.message);
+            } finally {
+                // Remove from updating set after operation completes
                 setTimeout(() => {
                     updatingAlerts.delete(alertId);
-                    loadContactAlerts(); // Reload to reset button states
-                }, 1000);
+                }, 2000);
             }
         }
 
@@ -1326,7 +1323,7 @@
                 console.log('✅ Joined contact room:', currentContact.id);
             }
             
-            // FIXED: Listen for new alerts with proper event handling
+            // Listen for new alerts
             socket.on('new-alert', (alertData) => {
                 console.log('🚨 NEW ALERT RECEIVED VIA SOCKET:', alertData);
                 handleNewAlert(alertData);
@@ -1356,12 +1353,6 @@
 
             socket.on('connect_error', (error) => {
                 console.error('❌ Socket connection error:', error);
-            });
-
-            // Test socket connection
-            socket.emit('ping', { message: 'Hello from trusted contact app' });
-            socket.on('pong', (data) => {
-                console.log('📡 Socket test successful:', data);
             });
         }
 

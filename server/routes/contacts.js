@@ -6,31 +6,55 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Create trusted contact
+// Create trusted contact with auto-generated credentials
 router.post('/', auth, async (req, res) => {
   try {
     const { name, phone, email, relationship } = req.body;
     
+    // Input validation
     if (!name || !phone || !email) {
-      return res.status(400).json({ message: 'Name, phone, and email are required' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Name, phone, and email are required' 
+      });
     }
 
-    const existingContact = await Contact.findOne({ email });
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid email format' 
+      });
+    }
+
+    // Check if contact already exists for this user
+    const existingContact = await Contact.findOne({ 
+      email: email.toLowerCase(),
+      userId: req.user._id
+    });
+    
     if (existingContact) {
-      return res.status(400).json({ message: 'Contact already exists with this email' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'You already have a trusted contact with this email' 
+      });
     }
 
-    // Generate temporary password
+    // Generate temporary password (8 characters)
     const tempPassword = crypto.randomBytes(4).toString('hex');
+    console.log(`🔑 Generated password for ${email}: ${tempPassword}`);
 
+    // Create new contact
     const contact = await Contact.create({
       userId: req.user._id,
-      name,
-      phone,
-      email,
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.toLowerCase().trim(),
       relationship: relationship || 'Trusted Contact',
       password: tempPassword,
-      isVerified: true
+      isVerified: true,
+      isActive: true
     });
 
     // Add to user's emergency contacts
@@ -38,64 +62,72 @@ router.post('/', auth, async (req, res) => {
       $push: {
         emergencyContacts: {
           contactId: contact._id,
-          name,
-          phone,
-          email,
-          relationship: relationship || 'Trusted Contact'
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email.toLowerCase().trim(),
+          relationship: relationship || 'Trusted Contact',
+          addedAt: new Date(),
+          isActive: true
         }
       }
     });
 
+    // Success response with credentials
     res.status(201).json({
+      success: true,
       contact: {
         id: contact._id,
         name: contact.name,
         email: contact.email,
         phone: contact.phone,
-        relationship: contact.relationship
+        relationship: contact.relationship,
+        isActive: contact.isActive,
+        createdAt: contact.createdAt
       },
-      tempPassword,
-      message: 'Trusted contact added successfully'
+      loginCredentials: {
+        email: contact.email,
+        password: tempPassword,
+        loginUrl: '/trusted-contact'
+      },
+      message: 'Trusted contact added successfully. Share the login credentials with them securely.'
     });
 
   } catch (error) {
-    console.error('Create contact error:', error);
-    res.status(500).json({ message: 'Server error creating contact' });
+    console.error('❌ Create contact error:', error);
+    
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'A contact with this email already exists in the system' 
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error creating contact' 
+    });
   }
 });
 
 // Get user's contacts
 router.get('/', auth, async (req, res) => {
   try {
-    const contacts = await Contact.find({ userId: req.user._id });
-    res.json(contacts);
-  } catch (error) {
-    console.error('Get contacts error:', error);
-    res.status(500).json({ message: 'Server error fetching contacts' });
-  }
-});
+    const contacts = await Contact.find({ userId: req.user._id })
+      .select('-password')
+      .sort({ createdAt: -1 });
 
-// Delete contact
-router.delete('/:contactId', auth, async (req, res) => {
-  try {
-    const contact = await Contact.findOneAndDelete({ 
-      _id: req.params.contactId, 
-      userId: req.user._id 
-    });
-    
-    if (!contact) {
-      return res.status(404).json({ message: 'Contact not found' });
-    }
-
-    // Remove from user's emergency contacts
-    await User.findByIdAndUpdate(req.user._id, {
-      $pull: { emergencyContacts: { contactId: contact._id } }
+    res.json({
+      success: true,
+      contacts,
+      count: contacts.length
     });
 
-    res.json({ message: 'Contact deleted successfully' });
   } catch (error) {
-    console.error('Delete contact error:', error);
-    res.status(500).json({ message: 'Server error deleting contact' });
+    console.error('❌ Get contacts error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error fetching contacts' 
+    });
   }
 });
 

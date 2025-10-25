@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Serve static files
 app.use(express.static(path.join(__dirname, '../client')));
 
-// MongoDB Atlas Connection - USING YOUR PROVIDED URI
+// MongoDB Atlas Connection
 const MONGODB_URI = 'mongodb+srv://NNOI:NNOI2@cluster0.amrhd90.mongodb.net/gbv_support?retryWrites=true&w=majority&appName=Cluster0';
 
 console.log('🔗 Connecting to MongoDB Atlas...');
@@ -41,6 +41,11 @@ mongoose.connect(MONGODB_URI, {
   console.error('❌ MongoDB Atlas connection error:', err.message);
   process.exit(1);
 });
+
+// Import models (ensure they exist)
+require('./models/User');
+require('./models/Contact');
+require('./models/Alert');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -107,69 +112,141 @@ const io = socketIo(server, {
   }
 });
 
+// Make io available to routes
+app.set('io', io);
+
 // Store connected users and contacts
 const connectedUsers = new Map();
 const connectedContacts = new Map();
 
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  console.log('🔌 User connected:', socket.id);
 
   // User joins their room
   socket.on('join-user-room', (userId) => {
     socket.join(`user_${userId}`);
     connectedUsers.set(userId, socket.id);
-    console.log(`User ${userId} joined room`);
+    console.log(`👤 User ${userId} joined room`);
   });
 
   // Contact joins their room
   socket.on('join-contact-room', (contactId) => {
     socket.join(`contact_${contactId}`);
     connectedContacts.set(contactId, socket.id);
-    console.log(`Contact ${contactId} joined room`);
+    console.log(`📞 Contact ${contactId} joined room`);
   });
 
-  // Emergency alert
+  // Emergency alert - FIXED
   socket.on('send-emergency-alert', async (alertData) => {
     try {
-      console.log('Emergency alert received:', alertData);
+      console.log('🚨 Emergency alert received:', alertData);
       
-      // Notify all contacts of the user
       const Alert = require('./models/Alert');
-      const alert = await Alert.findById(alertData.alertId).populate('userId');
+      const Contact = require('./models/Contact');
       
-      if (alert && alert.trustedContactsNotified) {
-        alert.trustedContactsNotified.forEach(contact => {
-          socket.to(`contact_${contact.contactId}`).emit('new-alert', {
-            ...alertData,
+      // Get the alert with populated data
+      const alert = await Alert.findById(alertData.alertId)
+        .populate('userId', 'name phone')
+        .populate('trustedContactsNotified.contactId');
+      
+      if (alert) {
+        console.log(`📢 Notifying contacts for alert: ${alert._id}`);
+        
+        // Notify each contact individually
+        if (alert.trustedContactsNotified && alert.trustedContactsNotified.length > 0) {
+          alert.trustedContactsNotified.forEach(contact => {
+            if (contact.contactId && contact.contactId._id) {
+              socket.to(`contact_${contact.contactId._id}`).emit('new-alert', {
+                alertId: alert._id,
+                userId: alert.userId._id,
+                userName: alert.userId.name,
+                userPhone: alert.userId.phone,
+                location: alert.location,
+                message: alert.message,
+                emergencyType: alert.emergencyType,
+                createdAt: alert.createdAt,
+                type: 'emergency'
+              });
+              console.log(`📨 Sent alert to contact: ${contact.contactId._id}`);
+            }
+          });
+        }
+        
+        // Also broadcast for any connected contacts
+        socket.broadcast.emit('new-alert-broadcast', {
+          alertId: alert._id,
+          userId: alert.userId._id,
+          userName: alert.userId.name,
+          userPhone: alert.userId.phone,
+          location: alert.location,
+          message: alert.message,
+          emergencyType: alert.emergencyType,
+          createdAt: alert.createdAt,
+          contactsNotified: alert.trustedContactsNotified?.length || 0
+        });
+      }
+      
+    } catch (error) {
+      console.error('❌ Error handling emergency alert:', error);
+    }
+  });
+
+  // Alert status update - FIXED
+  socket.on('alert-status-update', async (updateData) => {
+    try {
+      console.log('📝 Alert status update:', updateData);
+      
+      const Alert = require('./models/Alert');
+      const alert = await Alert.findById(updateData.alertId).populate('userId');
+      
+      if (alert) {
+        // Notify the user who sent the alert
+        socket.to(`user_${alert.userId._id}`).emit('alert-status-update', {
+          alertId: alert._id,
+          status: updateData.status,
+          contactName: updateData.contactName,
+          contactId: updateData.contactId,
+          timestamp: updateData.timestamp,
+          message: `${updateData.contactName} marked the alert as ${updateData.status}`
+        });
+        
+        // Notify other contacts of the same user
+        const Contact = require('./models/Contact');
+        const contacts = await Contact.find({ 
+          userId: alert.userId._id, 
+          isActive: true,
+          _id: { $ne: updateData.contactId }
+        });
+        
+        contacts.forEach(contact => {
+          socket.to(`contact_${contact._id}`).emit('alert-status-update', {
             alertId: alert._id,
-            userName: alert.userId.name,
-            userPhone: alert.userId.phone
+            status: updateData.status,
+            contactName: updateData.contactName,
+            timestamp: updateData.timestamp,
+            message: `${updateData.contactName} marked the alert as ${updateData.status}`
           });
         });
       }
       
-      // Broadcast to all connected contacts for demo
-      socket.broadcast.emit('new-alert-broadcast', alertData);
-      
     } catch (error) {
-      console.error('Error handling emergency alert:', error);
+      console.error('❌ Error handling alert status update:', error);
     }
   });
 
-  // Alert status update
-  socket.on('alert-status-update', (updateData) => {
-    console.log('Alert status update:', updateData);
-    
-    // Notify the user who sent the alert
-    socket.to(`user_${updateData.userId}`).emit('alert-status-update', updateData);
-    
-    // Notify other contacts
-    socket.broadcast.emit('alert-status-update', updateData);
+  // Contact alert update
+  socket.on('contact-alert-update', (data) => {
+    console.log('📞 Contact alert update:', data);
+    socket.broadcast.emit('contact-alert-update', data);
   });
 
   // Test connection
   socket.on('ping', (data) => {
-    socket.emit('pong', { message: 'pong', timestamp: new Date() });
+    socket.emit('pong', { 
+      message: 'pong', 
+      timestamp: new Date(),
+      server: 'GBV Support System'
+    });
   });
 
   socket.on('disconnect', () => {
@@ -177,6 +254,7 @@ io.on('connection', (socket) => {
     for (let [userId, socketId] of connectedUsers.entries()) {
       if (socketId === socket.id) {
         connectedUsers.delete(userId);
+        console.log(`👤 User ${userId} disconnected`);
         break;
       }
     }
@@ -185,11 +263,30 @@ io.on('connection', (socket) => {
     for (let [contactId, socketId] of connectedContacts.entries()) {
       if (socketId === socket.id) {
         connectedContacts.delete(contactId);
+        console.log(`📞 Contact ${contactId} disconnected`);
         break;
       }
     }
     
-    console.log('User disconnected:', socket.id);
+    console.log('🔌 User disconnected:', socket.id);
+  });
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('🚨 Server Error:', error);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
   });
 });
 
@@ -199,4 +296,5 @@ server.listen(PORT, () => {
   console.log(`📱 Main App: http://localhost:${PORT}`);
   console.log(`👥 Trusted Contact: http://localhost:${PORT}/trusted-contact`);
   console.log(`🔧 API: http://localhost:${PORT}/api`);
+  console.log(`❤️  GBV Support System Ready!`);
 });
