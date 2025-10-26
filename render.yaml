@@ -5,6 +5,7 @@ services:
     plan: free
     buildCommand: npm install
     startCommand: npm start
+    publishDir: .
     envVars:
       - key: NODE_ENV
         value: production
