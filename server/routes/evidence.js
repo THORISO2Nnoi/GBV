@@ -99,7 +99,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const { type, search, sortBy = 'incidentDate', order = 'desc' } = req.query;
-    
+    console.log('👤 Authenticated user:', req.user);
     const filter = { userId: req.user._id };
     
     if (type && type !== 'all') {
@@ -123,11 +123,17 @@ router.get('/', auth, async (req, res) => {
       .select('-filePath -encryptionKey')
       .sort(sortOptions)
       .limit(50);
+      console.log('📊 Found evidence:', evidence.length);
 
     const evidenceWithUrls = evidence.map(item => {
       const evidenceObj = item.toObject();
-      if (evidenceObj.fileName) {
-        evidenceObj.fileUrl = `/uploads/evidence/${path.basename(item.filePath)}`;
+      //✅ Safely check both fileName and filePath
+      if (item.fileName && item.filePath) {
+        const safePath = path.basename(item.filePath);
+        evidenceObj.fileUrl = `/uploads/evidence/${safePath}`;
+      }
+      else {
+        evidenceObj.fileUrl = null; // No file attached
       }
       return evidenceObj;
     });

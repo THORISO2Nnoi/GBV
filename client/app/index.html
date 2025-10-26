@@ -1035,8 +1035,10 @@
         <div id="emergency-screen" class="screen">
             <div class="emergency-container">
                 <div class="countdown" id="countdown">5</div>
+                <p id="help-message">Preparing to send help...</p>
                 <p>Emergency alert will be sent in <span id="countdown-seconds">5</span> seconds</p>
                 
+
                 <div class="emergency-actions">
                     <button class="btn-secondary" id="cancel-emergency">I'm Safe</button>
                     <button class="btn-danger" id="send-now">Send Now</button>
@@ -1699,83 +1701,91 @@
     </div>
 
     <script>
-        // Mock API base URL for demo purposes
-        const API_BASE = '/api';
-
-        let socket;
-        let currentUser = null;
-        let countdownInterval;
-
-        // DOM Elements
-        const screens = {
-            login: document.getElementById('login-screen'),
-            register: document.getElementById('register-screen'),
-            app: document.getElementById('app-screen'),
-            emergency: document.getElementById('emergency-screen'),
-            contacts: document.getElementById('contacts-screen'),
-            safety: document.getElementById('safety-plan-screen'),
-            resources: document.getElementById('resources-screen'),
-            evidence: document.getElementById('evidence-screen'),
-            chat: document.getElementById('chat-screen'),
-            profile: document.getElementById('profile-screen')
-        };
-
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeEventListeners();
-            checkExistingAuth();
+    
+    // API base URL - update this to match your backend server
+    // 
+    const API_BASE = 'http://localhost:3000/api';
+    
+    let socket;
+    let currentUser = null;
+    let countdownInterval;
+    
+    // DOM Elements
+    const screens = {
+        login: document.getElementById('login-screen'),
+        register: document.getElementById('register-screen'),
+        app: document.getElementById('app-screen'),
+        emergency: document.getElementById('emergency-screen'),
+        contacts: document.getElementById('contacts-screen'),
+        safety: document.getElementById('safety-plan-screen'),
+        resources: document.getElementById('resources-screen'),
+        evidence: document.getElementById('evidence-screen'),
+        chat: document.getElementById('chat-screen'),
+        profile: document.getElementById('profile-screen')
+    };
+    
+    // Initialize app
+    // 
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeEventListeners();
+        checkExistingAuth();
+    });
+    
+    function initializeEventListeners() {
+        // Auth navigation
+        // 
+        document.getElementById('show-register').addEventListener('click', showRegister);
+        document.getElementById('show-login').addEventListener('click', showLogin);
+        
+        // Forms
+        
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
+        document.getElementById('register-form').addEventListener('submit', handleRegister);
+        
+        // App navigation
+         
+        document.getElementById('logout-btn').addEventListener('click', handleLogout);
+        
+        // Navigation items    
+         
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const screen = this.getAttribute('data-screen');
+                handleNavClick(screen);
+            });
+        });
+        
+        // Emergency features
+        document.getElementById('emergency-btn').addEventListener('click', showEmergencyScreen);
+        document.getElementById('cancel-emergency').addEventListener('click', cancelEmergency);
+        document.getElementById('send-now').addEventListener('click', sendEmergencyNow);
+        
+        // Contacts
+        document.getElementById('add-contact-btn').addEventListener('click', showAddContactModal);
+        document.getElementById('cancel-contact').addEventListener('click', hideAddContactModal);
+        document.getElementById('add-contact-form').addEventListener('submit', handleAddContact);
+        
+        // Evidence
+         
+        document.getElementById('add-evidence-btn').addEventListener('click', showAddEvidenceModal);
+        document.getElementById('cancel-evidence').addEventListener('click', hideAddEvidenceModal);
+        document.getElementById('add-evidence-form').addEventListener('submit', handleAddEvidence);
+        document.getElementById('file-upload-area').addEventListener('click', () => {
+            document.getElementById('evidence-file').click();
         });
 
-        function initializeEventListeners() {
-            // Auth navigation
-            document.getElementById('show-register').addEventListener('click', showRegister);
-            document.getElementById('show-login').addEventListener('click', showLogin);
-            
-            // Forms
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('register-form').addEventListener('submit', handleRegister);
-            
-            // App navigation
-            document.getElementById('logout-btn').addEventListener('click', handleLogout);
-            
-            // Navigation items
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const screen = this.getAttribute('data-screen');
-                    handleNavClick(screen);
-                });
+        // Quick actions
+        document.querySelectorAll('.action-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const action = this.getAttribute('data-action');
+                handleQuickAction(action);
             });
-            
-            // Emergency features
-            document.getElementById('emergency-btn').addEventListener('click', showEmergencyScreen);
-            document.getElementById('cancel-emergency').addEventListener('click', cancelEmergency);
-            document.getElementById('send-now').addEventListener('click', sendEmergencyNow);
-            
-            // Contacts
-            document.getElementById('add-contact-btn').addEventListener('click', showAddContactModal);
-            document.getElementById('cancel-contact').addEventListener('click', hideAddContactModal);
-            document.getElementById('add-contact-form').addEventListener('submit', handleAddContact);
-            
-            // Evidence
-            document.getElementById('add-evidence-btn').addEventListener('click', showAddEvidenceModal);
-            document.getElementById('cancel-evidence').addEventListener('click', hideAddEvidenceModal);
-            document.getElementById('add-evidence-form').addEventListener('submit', handleAddEvidence);
-            document.getElementById('file-upload-area').addEventListener('click', () => {
-                document.getElementById('evidence-file').click();
-            });
-            
-            // Quick actions
-            document.querySelectorAll('.action-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    const action = this.getAttribute('data-action');
-                    handleQuickAction(action);
-                });
-            });
-            
-            // Fake mode
+        });
+
+        // Fake mode
             document.getElementById('fake-mode-btn').addEventListener('click', toggleFakeMode);
         }
-
+        
         function checkExistingAuth() {
             const token = localStorage.getItem('gbv_token');
             const user = localStorage.getItem('gbv_user');
@@ -1862,7 +1872,7 @@
             console.log("🟡 Attempting login with:", { email, password }); // 1️⃣ Debug: log credentials
 
             try {
-                const res = await fetch('http://localhost:10000/api/auth/login', {
+                const res = await fetch('http://localhost:3000/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -1880,6 +1890,8 @@
 
                 console.log("✅ Login successful! Token:", data.token);
                 showScreen('app');
+                initializeSocket();
+                loadUserData();
                 showAlert('Login successful!');
                 } else {
                 console.error("❌ Login failed:", data.message);
@@ -1914,7 +1926,6 @@
                 alert('Login error: ' + error.message);
             }*/
         }
-
         async function handleRegister(e) {
             e.preventDefault();
             const name = document.getElementById('register-name').value;
@@ -1968,8 +1979,7 @@
                 alert('Registration error: ' + error.message);
             }
         }
-
-        function handleLogout() {
+         function handleLogout() {
             localStorage.removeItem('gbv_token');
             localStorage.removeItem('gbv_user');
             currentUser = null;
@@ -2008,22 +2018,37 @@
         function showEmergencyScreen() {
             showScreen('emergency');
             startCountdown();
-            getCurrentLocation();
+            //getCurrentLocation();
             loadEmergencyContacts();
         }
 
         function startCountdown() {
             let seconds = 5;
-            document.getElementById('countdown').textContent = seconds;
-            document.getElementById('countdown-seconds').textContent = seconds;
-            
+            const countdownElement = document.getElementById('countdown');
+            const countdownSeconds = document.getElementById('countdown-seconds');
+            const messageElement = document.getElementById('help-message'); // 👈 make sure you have this element in HTML
+
+            countdownElement.textContent = seconds;
+            countdownSeconds.textContent = seconds;
+
             countdownInterval = setInterval(() => {
                 seconds--;
-                document.getElementById('countdown').textContent = seconds;
-                document.getElementById('countdown-seconds').textContent = seconds;
-                
+                countdownElement.textContent = seconds;
+                countdownSeconds.textContent = seconds;
+
                 if (seconds <= 0) {
-                    sendEmergencyAlert();
+                    // 🛑 stop countdown
+                    clearInterval(countdownInterval)
+
+                    countdownElement.textContent = "0";
+                    countdownSeconds.textContent = "0";
+
+                    if(messageElement) {
+                       messageElement.innerHTML = "<h2>🚨 Help is on the way!</h2>";
+                       countdownSeconds.parentElement.style.display = 'none';
+                       sendEmergencyAlert();
+                    }
+                    
                 }
             }, 1000);
         }
@@ -2056,13 +2081,14 @@
                         message: 'Emergency assistance needed'
                     })
                 });
+                console.log('✅ Alert created Location:', location); // Debug log
 
                 if (response.ok) {
                     const alertData = await response.json();
                     console.log('✅ Alert created successfully:', alertData);
                     
                     showAlert('🚨 Emergency alert sent to your trusted contacts!');
-                    showScreen('app');
+                    //showScreen('app');
                     loadRecentAlerts();
                 } else {
                     throw new Error('Failed to send emergency alert');
@@ -2127,7 +2153,86 @@
             document.getElementById('add-contact-modal').classList.remove('active');
             document.getElementById('add-contact-form').reset();
         }
+        
+        // Evidence Functions
+        // Enhanced evidence submission with better error handling
+        async function handleAddEvidence(e) {
+            e.preventDefault();
+            console.log('📁 Starting evidence submission...');
 
+            const submitBtn = document.getElementById('save-evidence');
+            const loadingSpinner = document.getElementById('save-loading');
+            
+            try {
+                if (submitBtn) submitBtn.disabled = true;
+                if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+                
+                // Collect input data
+                // 
+                const type = document.getElementById('evidence-type').value;
+                const title = document.getElementById('evidence-title').value;
+                const description = document.getElementById('evidence-description').value;
+                const notes = document.getElementById('evidence-notes').value;
+                const incidentDate = document.getElementById('evidence-incident-date').value;
+                const location = document.getElementById('evidence-location').value;
+                const tags = document.getElementById('evidence-tags').value;
+                
+                if (!type || !title || !incidentDate) {
+                    throw new Error('Please fill in all required fields (Type, Title, and Date)');
+                }
+                
+                const fileInput = document.getElementById('evidence-file');
+                const formData = new FormData();
+                
+                formData.append('type', type);
+                formData.append('title', title);
+                formData.append('description', description || title);
+                formData.append('notes', notes);
+                formData.append('incidentDate', incidentDate);
+                formData.append('location', location);
+                formData.append('tags', tags);
+                
+                if (fileInput && fileInput.files.length > 0) {
+                    formData.append('file', fileInput.files[0]);
+                    console.log('📁 Attached file:', fileInput.files[0].name);
+                }
+                
+                const token = localStorage.getItem('gbv_token');
+                if (!token) throw new Error('Authentication required. Please log in again.');
+                
+                console.log('📡 Sending evidence to server...');
+                
+                const response = await fetch(`${API_BASE}/evidence`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Unknown server error' }));
+                    throw new Error(errorData.message || `Server error: ${response.status}`);
+                }
+                const result = await response.json();
+                console.log('✅ Evidence saved successfully:', result);
+                
+                hideAddEvidenceModal();
+                showAlert('Evidence saved securely! 🔒');
+                
+                setTimeout(() => loadEvidence(), 1000);
+            } catch (error) {
+                console.error('❌ Error saving evidence:', error);
+                showAlert(`Error: ${error.message}`, 'error');
+                
+                if (error.message.includes('Authentication')) {
+                    setTimeout(() => handleLogout(), 2000);
+                }
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+                if (loadingSpinner) loadingSpinner.classList.add('hidden');
+            }
+        }
         // Enhanced Trusted Contact Management
         async function handleAddContact(e) {
             e.preventDefault();
@@ -2164,78 +2269,174 @@
                 alert('Error adding contact: ' + error.message);
             }
         }
-
         async function loadContacts() {
-            try {
-                const contacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
-                const contactsList = document.getElementById('contacts-list');
-                if (contacts.length > 0) {
-                    contactsList.innerHTML = contacts.map(contact => 
+            const contactsList = document.getElementById('contacts-list');
+            const token = localStorage.getItem('gbv_token'); // 🪪 JWT token stored on login
+              try {
+                const response = await fetch('http://localhost:3000/api/contacts', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                     }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    const contacts = data.contacts || [];
+                    console.log('📡 Contacts loaded from API:', contacts);
+                    // 💾 2️⃣ Save a copy locally for offline access
+
+                    
+                    localStorage.setItem('gbv_contacts', JSON.stringify(contacts));
+                    
+                    // 🖼️ 3️⃣ Render contacts on the page
+
+                    if (contacts.length > 0) {
+                        contactsList.innerHTML = contacts.map(contact =>
                         `<div class="contact-item">
                             <div class="contact-info">
                                 <div class="contact-name">${contact.name}</div>
                                 <div class="contact-details">${contact.phone} • ${contact.email}</div>
                                 <div class="contact-relationship">${contact.relationship || 'Trusted Contact'}</div>
-                            </div>
-                            <button class="btn-secondary" onclick="deleteContact('${contact.id}')">Remove</button>
-                        </div>`
-                    ).join('');
-                } else {
-                    contactsList.innerHTML = `
-                        <div class="empty-state">
-                            <span class="empty-icon">👥</span>
-                            <h3>No Trusted Contacts</h3>
-                            <p>Add trusted contacts who will be notified in emergencies</p>
-                            <button class="btn-primary" onclick="showAddContactModal()">Add First Contact</button>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error loading contacts:', error);
-                document.getElementById('contacts-list').innerHTML = '<p style="text-align: center; padding: 2rem; color: red;">Error loading contacts</p>';
-            }
-        }
+                                </div>
+                                <button class="btn-secondary" onclick="deleteContact('${contact._id}')">Remove</button>
+                                </div>`
+                            ).join('');
+                        } else {
+                            contactsList.innerHTML = `
+                            <div class="empty-state">
+                                <span class="empty-icon">👥</span>
+                                <h3>No Trusted Contacts</h3>
+                                <p>Add trusted contacts who will be notified in emergencies</p>
+                                <button class="btn-primary" onclick="showAddContactModal()">Add First Contact</button>
+                                </div>
+                                `;
+                            }
+                        } catch (error) {
+                            console.error('❌ Error loading contacts:', error);
+                            
+                            // 🧭 4️⃣ Fallback: Load local data if server fails
+                            const localContacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
+                            
+                            if (localContacts.length > 0) {
+                                console.warn('⚠️ Using cached contacts from localStorage');
+                                contactsList.innerHTML = localContacts.map(contact =>
+                                `<div class="contact-item">
+                                    <div class="contact-info">
+                                        <div class="contact-name">${contact.name}</div>
+                                        <div class="contact-details">${contact.phone} • ${contact.email}</div>
+                                        <div class="contact-relationship">${contact.relationship || 'Trusted Contact'}</div>
+                                        </div>
+                                        <button class="btn-secondary" onclick="deleteContact('${contact.id || contact._id}')">Remove</button>
+                                        </div>`
+                                    ).join('');
+                                } else {
+                                    contactsList.innerHTML = `
+                                    <div class="empty-state">
+                                        <span class="empty-icon">💾</span>
+                                        <h3>Error loading contacts</h3>
+                                        <p>Try refreshing the page or checking your connection</p>
+                                        </div>
+                                        `;
+                                    }
+                                }
+                            }
 
-        async function deleteContact(contactId) {
-            if (confirm('Are you sure you want to remove this trusted contact?')) {
-                try {
-                    const contacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
-                    const filteredContacts = contacts.filter(contact => contact.id !== contactId);
-                    localStorage.setItem('gbv_contacts', JSON.stringify(filteredContacts));
-                    
-                    showAlert('Contact removed successfully');
-                    loadContacts();
-                } catch (error) {
-                    alert('Error removing contact: ' + error.message);
-                }
-            }
-        }
-
-       // Enhanced Evidence Vault Functions
-function showAddEvidenceModal() {
-    console.log('📁 Opening add evidence modal');
-    document.getElementById('add-evidence-modal').classList.add('active');
-    
-    // Set current date and time as default
-    const now = new Date();
-    const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    document.getElementById('evidence-incident-date').value = localDateTime;
-}
-
-function hideAddEvidenceModal() {
-    document.getElementById('add-evidence-modal').classList.remove('active');
-    document.getElementById('add-evidence-form').reset();
-    
-    // Reset file preview
-    const filePreview = document.getElementById('file-preview');
-    const uploadPlaceholder = document.querySelector('.upload-placeholder');
-    if (filePreview) {
-        filePreview.classList.add('hidden');
-    }
-    if (uploadPlaceholder) {
-        uploadPlaceholder.classList.remove('hidden');
-    }
-}
+                            // 🧹 Delete contact from both localStorage and backend
+                         
+                            async function deleteContact(contactId) {
+                                
+                                if (confirm('Are you sure you want to remove this trusted contact?')) {
+                                    
+                                    try {
+                                        console.log('🧩 Deleting contact with ID:', contactId);
+                                        
+                                        // Get token for authentication
+                                        // 
+                                        const token = localStorage.getItem('gbv_token');
+                                        
+                                        if (!token) {
+                                            
+                                            showAlert('⚠️ Please log in again — authentication token missing.');
+                                            
+                                            return;
+                                        }
+                                        
+                                        // 🛰️ Delete from backen
+                                        // 
+                                        
+                                        const response = await fetch(`http://localhost:3000/api/contacts/${contactId}`, {
+                                            method: 'DELETE',
+                                            headers: {
+                                                'Authorization': `Bearer ${token}`,
+                                                'Content-Type': 'application/json'
+                                            }
+                                        });
+                                        
+                                        if (!response.ok) {
+                                            
+                                            const errorText = await response.text();
+                                            console.error('🚨 Backend delete failed:', errorText);
+                                            
+                                            showAlert('❌ Failed to remove contact from server.');
+                                            return;
+                                        }
+                                        
+                                        console.log('✅ Contact deleted from backend.');
+                                        
+                                        // 💾 Delete from localStorage
+                                        // 
+                                        
+                                        const contacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
+                                        const updatedContacts = contacts.filter(contact => contact.id !== contactId);
+                                        
+                                        localStorage.setItem('gbv_contacts', JSON.stringify(updatedContacts));
+                                        
+                                        console.log('🧹 Contact removed locally.');
+                                        showAlert('✅ Contact removed successfully.');
+                                        
+                                        loadContacts();
+                                    
+                                    } catch (error) {
+                                        console.error('💥 Error deleting contact:', error);
+                                        showAlert('❌ Error removing contact: ' + error.message);
+                                    }
+                                }
+                            }
+                            // Enhanced Evidence Vault Functions
+                            // 
+                            function showAddEvidenceModal() {
+                                console.log('📁 Opening add evidence modal');
+                                document.getElementById('add-evidence-modal').classList.add('active');
+                                
+                                // Set current date and time as default
+                                // Set current date and time as default
+                                const now = new Date();
+                                const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                                document.getElementById('evidence-incident-date').value = localDateTime;
+                            }
+                            
+                            function hideAddEvidenceModal() {
+                                document.getElementById('add-evidence-modal').classList.remove('active');
+                                document.getElementById('add-evidence-form').reset();
+                                
+                                // Reset file preview
+                                // 
+                                const filePreview = document.getElementById('file-preview');
+                                const uploadPlaceholder = document.querySelector('.upload-placeholder');
+                                
+                                if (filePreview) {
+                                    filePreview.classList.add('hidden');
+                                }
+                                
+                                if (uploadPlaceholder) {
+                                    uploadPlaceholder.classList.remove('hidden');
+                                }
+                            }
+                            
 
 // Enhanced file upload handling
 function setupFileUpload() {
@@ -2328,127 +2529,6 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Enhanced evidence submission with better error handling
-async function handleAddEvidence(e) {
-    e.preventDefault();
-    console.log('📁 Starting evidence submission...');
-
-    const submitBtn = document.getElementById('save-evidence');
-    const loadingSpinner = document.getElementById('save-loading');
-    
-    try {
-        // Show loading state
-        if (submitBtn) submitBtn.disabled = true;
-        if (loadingSpinner) loadingSpinner.classList.remove('hidden');
-
-        // Get form data
-        const type = document.getElementById('evidence-type').value;
-        const title = document.getElementById('evidence-title').value;
-        const description = document.getElementById('evidence-description').value;
-        const notes = document.getElementById('evidence-notes').value;
-        const incidentDate = document.getElementById('evidence-incident-date').value;
-        const location = document.getElementById('evidence-location').value;
-        const tags = document.getElementById('evidence-tags').value;
-
-        console.log('📁 Form data:', { type, title, incidentDate });
-
-        // Validate required fields
-        if (!type || !title || !incidentDate) {
-            throw new Error('Please fill in all required fields (Type, Title, and Date)');
-        }
-
-        // Get file data if available
-        const fileInput = document.getElementById('evidence-file');
-        let fileData = null;
-        let fileName = null;
-        let fileType = null;
-
-        if (fileInput && fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            fileName = file.name;
-            fileType = file.type;
-            
-            // Convert file to base64 for storage
-            fileData = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(new Error('File reading failed'));
-                reader.readAsDataURL(file);
-            });
-            
-            console.log('📁 File attached:', fileName, formatFileSize(file.size));
-        }
-
-        const token = localStorage.getItem('gbv_token');
-        if (!token) {
-            throw new Error('Authentication required. Please log in again.');
-        }
-
-        console.log('📁 Sending request to server...');
-
-        const response = await fetch(`${API_BASE}/evidence`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                type,
-                title,
-                description: description || title,
-                notes,
-                date: incidentDate,
-                location,
-                tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-                fileData,
-                fileName,
-                fileType
-            })
-        });
-
-        console.log('📁 Server response status:', response.status);
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown server error' }));
-            throw new Error(errorData.message || `Server error: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('✅ Evidence saved successfully:', result);
-
-        hideAddEvidenceModal();
-        showAlert('Evidence saved securely! 🔒');
-        
-        // Reload evidence list
-        setTimeout(() => {
-            loadEvidence();
-        }, 1000);
-
-    } catch (error) {
-        console.error('❌ Error saving evidence:', error);
-        
-        let errorMessage = error.message;
-        
-        if (error.message.includes('Failed to fetch')) {
-            errorMessage = 'Cannot connect to server. Please check your internet connection and try again.';
-        } else if (error.message.includes('Authentication')) {
-            errorMessage = 'Session expired. Please log in again.';
-            setTimeout(() => {
-                handleLogout();
-            }, 2000);
-        }
-        
-        showAlert('Error: ' + errorMessage, 'error');
-    } finally {
-        // Reset loading state
-        if (submitBtn) {
-            submitBtn.disabled = false;
-        }
-        if (loadingSpinner) {
-            loadingSpinner.classList.add('hidden');
-        }
-    }
-}
 
 // Enhanced evidence loading
 async function loadEvidence() {
