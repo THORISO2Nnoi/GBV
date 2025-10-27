@@ -21,7 +21,7 @@ const messageSchema = new mongoose.Schema({
     messageType: {
         type: String,
         default: 'text',
-        enum: ['text', 'file', 'location', 'emergency']
+        enum: ['text', 'file', 'location', 'emergency', 'system']
     },
     fileUrl: {
         type: String,
@@ -128,7 +128,7 @@ chatSchema.statics.findByUserId = function(userId, page = 1, limit = 20) {
         .sort({ 'lastMessage.timestamp': -1, updatedAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select('-messages -encryptionKey') // Exclude heavy fields for list view
+        .select('-messages -encryptionKey')
         .exec();
 };
 
@@ -151,9 +151,12 @@ chatSchema.methods.markAsRead = function(sender = 'professional') {
 // Instance method to get messages with pagination
 chatSchema.methods.getMessages = function(page = 1, limit = 50) {
     const skip = (page - 1) * limit;
+    const totalMessages = this.messages.length;
+    const startIndex = Math.max(0, totalMessages - (skip + limit));
+    const endIndex = totalMessages - skip;
+    
     return this.messages
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(skip, skip + limit)
+        .slice(startIndex, endIndex)
         .reverse();
 };
 

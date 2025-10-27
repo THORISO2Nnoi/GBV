@@ -4,7 +4,7 @@ const Contact = require('../models/Contact');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gbv_secret_key_2024';
 
-// User authentication middleware
+// User authentication middleware - FIXED
 const auth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -18,10 +18,11 @@ const auth = async (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    if (decoded.type !== 'user') {
+    // Check token type
+    if (decoded.type && decoded.type !== 'user') {
       return res.status(401).json({ 
         success: false,
-        message: 'Invalid token type' 
+        message: 'Invalid token type for user access' 
       });
     }
 
@@ -59,7 +60,7 @@ const auth = async (req, res, next) => {
   }
 };
 
-// Contact authentication middleware
+// Contact authentication middleware - FIXED
 const contactAuth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -73,6 +74,7 @@ const contactAuth = async (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     
+    // Check token type
     if (decoded.type !== 'contact') {
       return res.status(401).json({ 
         success: false,

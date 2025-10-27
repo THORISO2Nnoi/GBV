@@ -5,6 +5,8 @@ const API_BASE = window.location.hostname.includes('localhost')
 let socket;
 let currentUser = null;
 let countdownInterval;
+let emergencyPressCount = 0;
+let lastEmergencyPress = 0;
 
 // DOM Elements
 const screens = {
@@ -47,8 +49,8 @@ function initializeEventListeners() {
         });
     });
     
-    // Emergency features
-    document.getElementById('emergency-btn').addEventListener('click', showEmergencyScreen);
+    // Emergency features - UPDATED WITH PRESS COUNT
+    document.getElementById('emergency-btn').addEventListener('click', handleEmergencyButtonPress);
     document.getElementById('cancel-emergency').addEventListener('click', cancelEmergency);
     document.getElementById('send-now').addEventListener('click', sendEmergencyNow);
     
@@ -286,12 +288,76 @@ function showAlert(message, type = 'success') {
     }, 5000);
 }
 
-// Emergency Functions
+// EMERGENCY FUNCTIONS - UPDATED WITH PRESS COUNT AND DUPLICATION PREVENTION
+function handleEmergencyButtonPress() {
+    const now = Date.now();
+    const timeSinceLastPress = now - lastEmergencyPress;
+    
+    // If it's been more than 2 seconds since last press, reset count
+    if (timeSinceLastPress > 2000) {
+        emergencyPressCount = 0;
+    }
+    
+    emergencyPressCount++;
+    lastEmergencyPress = now;
+    
+    // Update button appearance based on press count
+    updateEmergencyButtonAppearance();
+    
+    // Show emergency screen on first press
+    if (emergencyPressCount === 1) {
+        showEmergencyScreen();
+    } else {
+        // For subsequent presses, update the existing alert
+        updateExistingEmergencyAlert();
+    }
+}
+
+function updateEmergencyButtonAppearance() {
+    const emergencyBtn = document.getElementById('emergency-btn');
+    const btnIcon = emergencyBtn.querySelector('.btn-icon');
+    
+    switch(emergencyPressCount) {
+        case 1:
+            emergencyBtn.style.background = 'linear-gradient(135deg, var(--danger), var(--warning))';
+            btnIcon.textContent = '🚨';
+            break;
+        case 2:
+            emergencyBtn.style.background = 'linear-gradient(135deg, #ff4500, #ff8c00)';
+            btnIcon.textContent = '🚨🚨';
+            break;
+        case 3:
+            emergencyBtn.style.background = 'linear-gradient(135deg, #dc143c, #ff0000)';
+            btnIcon.textContent = '🚨🚨🚨';
+            break;
+        default:
+            emergencyBtn.style.background = 'linear-gradient(135deg, #8b0000, #dc143c)';
+            btnIcon.textContent = '🚨🚨🚨🚨';
+    }
+}
+
 function showEmergencyScreen() {
     showScreen('emergency');
     startCountdown();
     getCurrentLocation();
     loadEmergencyContacts();
+    
+    // Update emergency screen with press count info
+    updateEmergencyScreenInfo();
+}
+
+function updateEmergencyScreenInfo() {
+    const helpMessage = document.getElementById('help-message');
+    const countdownElement = document.getElementById('countdown');
+    
+    if (emergencyPressCount === 1) {
+        helpMessage.textContent = 'Preparing to send help...';
+        countdownElement.style.color = 'white';
+    } else {
+        helpMessage.textContent = `URGENT! Emergency reinforced (${emergencyPressCount} presses)`;
+        countdownElement.style.color = '#ffeb3b';
+        countdownElement.style.textShadow = '0 0 10px yellow';
+    }
 }
 
 function startCountdown() {
@@ -312,8 +378,18 @@ function startCountdown() {
 
 function cancelEmergency() {
     clearInterval(countdownInterval);
+    emergencyPressCount = 0;
+    resetEmergencyButton();
     showScreen('app');
     showAlert('Emergency cancelled');
+}
+
+function resetEmergencyButton() {
+    const emergencyBtn = document.getElementById('emergency-btn');
+    const btnIcon = emergencyBtn.querySelector('.btn-icon');
+    
+    emergencyBtn.style.background = 'linear-gradient(135deg, var(--danger), var(--warning))';
+    btnIcon.textContent = '🚨';
 }
 
 function sendEmergencyNow() {
@@ -334,20 +410,57 @@ async function sendEmergencyAlert() {
             },
             body: JSON.stringify({
                 location: location,
-                message: 'Emergency assistance needed'
+                message: 'Emergency assistance needed',
+                pressCount: emergencyPressCount
             })
         });
 
         if (response.ok) {
-            showAlert('Emergency alert sent to your trusted contacts!');
+            const data = await response.json();
+            const urgencyMessage = emergencyPressCount > 1 ? 
+                ` (${emergencyPressCount} presses - ${data.alert.alertLevel} urgency)` : '';
+            
+            showAlert(`Emergency alert sent to your trusted contacts!${urgencyMessage}`);
             showScreen('app');
             loadRecentAlerts();
+            
+            // Reset press count after successful send
+            emergencyPressCount = 0;
+            resetEmergencyButton();
         } else {
-            throw new Error('Failed to send emergency alert');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to send emergency alert');
         }
     } catch (error) {
         console.error('Error sending alert:', error);
         alert('Error sending alert: ' + error.message);
+    }
+}
+
+async function updateExistingEmergencyAlert() {
+    try {
+        const token = localStorage.getItem('gbv_token');
+        const location = document.getElementById('location-text').textContent;
+        
+        const response = await fetch(`${API_BASE}/alerts/quick-emergency`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                location: location,
+                pressCount: emergencyPressCount
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            updateEmergencyScreenInfo();
+            showAlert(`Emergency reinforced! (Press ${data.alert.pressCount})`, 'warning');
+        }
+    } catch (error) {
+        console.error('Error updating emergency:', error);
     }
 }
 
@@ -371,20 +484,31 @@ function getCurrentLocation() {
     }
 }
 
-// Contacts Functions
+// CONTACTS FUNCTIONS - UPDATED WITH LOGIN CREDENTIALS POPUP
 async function loadEmergencyContacts() {
     try {
-        const contacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
-        const contactsContainer = document.getElementById('emergency-contacts');
-        if (contacts.length > 0) {
-            contactsContainer.innerHTML = contacts.map(contact => 
-                `<div class="contact-item">
-                    <span>${contact.name}</span>
-                    <span>${contact.relationship || 'Trusted Contact'}</span>
-                </div>`
-            ).join('');
-        } else {
-            contactsContainer.innerHTML = '<p>No trusted contacts added yet.</p>';
+        const token = localStorage.getItem('gbv_token');
+        const response = await fetch(`${API_BASE}/contacts`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const contacts = data.contacts;
+            const contactsContainer = document.getElementById('emergency-contacts');
+            
+            if (contacts.length > 0) {
+                contactsContainer.innerHTML = contacts.map(contact => 
+                    `<div class="contact-item">
+                        <span>${contact.name}</span>
+                        <span>${contact.relationship || 'Trusted Contact'}</span>
+                    </div>`
+                ).join('');
+            } else {
+                contactsContainer.innerHTML = '<p>No trusted contacts added yet.</p>';
+            }
         }
     } catch (error) {
         console.error('Error loading contacts:', error);
@@ -422,14 +546,156 @@ async function handleAddContact(e) {
         if (response.ok) {
             const data = await response.json();
             hideAddContactModal();
+            
+            // SHOW LOGIN DETAILS POPUP
+            showContactLoginDetails(data.contact, data.loginCredentials);
+            
             showAlert(`Contact ${name} added successfully!`);
             loadContacts();
         } else {
-            alert('Failed to add contact');
+            const errorData = await response.json();
+            alert(errorData.message || 'Failed to add contact');
         }
     } catch (error) {
         alert('Error adding contact: ' + error.message);
     }
+}
+
+// NEW FUNCTION: Show contact login details popup
+function showContactLoginDetails(contact, credentials) {
+    const popupHTML = `
+        <div class="modal active" id="contact-credentials-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>✅ Contact Added Successfully!</h3>
+                    <button class="close-btn" onclick="hideModal('contact-credentials-modal')">×</button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem;">
+                    <div class="success-message" style="text-align: center; margin-bottom: 1.5rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
+                        <h4 style="color: var(--success); margin-bottom: 0.5rem;">Login Credentials Generated</h4>
+                        <p>Share these details securely with <strong>${contact.name}</strong></p>
+                    </div>
+                    
+                    <div class="credentials-card">
+                        <div class="credential-item">
+                            <div>
+                                <strong>📧 Email</strong>
+                                <div class="credential-value">${credentials.email}</div>
+                            </div>
+                            <button class="btn-secondary" onclick="copyToClipboard('${credentials.email}')">Copy</button>
+                        </div>
+                        
+                        <div class="credential-item">
+                            <div>
+                                <strong>🔑 Password</strong>
+                                <div class="credential-value password">${credentials.password}</div>
+                            </div>
+                            <button class="btn-secondary" onclick="copyToClipboard('${credentials.password}')">Copy</button>
+                        </div>
+                        
+                        <div class="credential-item">
+                            <div>
+                                <strong>🌐 Login URL</strong>
+                                <div class="credential-value url">${window.location.origin}${credentials.loginUrl}</div>
+                            </div>
+                            <button class="btn-secondary" onclick="copyToClipboard('${window.location.origin}${credentials.loginUrl}')">Copy</button>
+                        </div>
+                    </div>
+                    
+                    <div class="security-notice">
+                        <h4>🔒 Security Instructions</h4>
+                        <p>
+                            ${credentials.instructions} 
+                            <strong>Do not share these credentials over insecure channels.</strong>
+                        </p>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn-primary" onclick="printCredentials()">
+                            🖨️ Print Credentials
+                        </button>
+                        <button class="btn-secondary" onclick="hideModal('contact-credentials-modal')">
+                            ✅ I've Saved These
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('contact-credentials-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add new modal to body
+    document.body.insertAdjacentHTML('beforeend', popupHTML);
+    
+    // Add click outside to close
+    const modal = document.getElementById('contact-credentials-modal');
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            hideModal('contact-credentials-modal');
+        }
+    });
+}
+
+// Helper function to copy text to clipboard
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert('Copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showAlert('Copied to clipboard!');
+    });
+}
+
+// Print credentials function
+function printCredentials() {
+    const modalContent = document.querySelector('#contact-credentials-modal .modal-content').cloneNode(true);
+    
+    // Remove buttons for print
+    const actionButtons = modalContent.querySelector('.action-buttons');
+    if (actionButtons) actionButtons.remove();
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Trusted Contact Login Credentials</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+                    .credentials-card { border: 2px solid #333; padding: 20px; margin: 20px 0; border-radius: 8px; }
+                    .credential-item { margin: 15px 0; padding: 15px; border: 1px solid #ccc; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+                    .credential-value { font-weight: bold; margin-top: 5px; }
+                    .credential-value.password { font-family: monospace; color: #dc143c; }
+                    .credential-value.url { color: #8B008B; word-break: break-all; }
+                    .security-notice { background: #fff3cd; padding: 15px; margin: 20px 0; border-radius: 6px; border: 1px solid #ffeaa7; }
+                    h1 { color: #8B008B; }
+                    @media print { body { padding: 0; } }
+                </style>
+            </head>
+            <body>
+                <h1>Trusted Contact Login Credentials</h1>
+                <p><strong>Generated on:</strong> ${new Date().toLocaleString()}</p>
+                ${modalContent.innerHTML}
+                <p style="margin-top: 30px; font-size: 12px; color: #666;">
+                    Keep this document secure. Destroy after sharing credentials.
+                </p>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
 }
 
 async function loadContacts() {
@@ -442,19 +708,31 @@ async function loadContacts() {
         });
 
         if (response.ok) {
-            const contacts = await response.json();
+            const data = await response.json();
+            const contacts = data.contacts;
             const contactsList = document.getElementById('contacts-list');
+            
             if (contacts.length > 0) {
-                contactsList.innerHTML = contacts.map(contact => 
-                    `<div class="contact-item">
+                contactsList.innerHTML = contacts.map(contact => `
+                    <div class="contact-item">
                         <div class="contact-info">
                             <div class="contact-name">${contact.name}</div>
                             <div class="contact-details">${contact.phone} • ${contact.email}</div>
                             <div class="contact-relationship">${contact.relationship || 'Trusted Contact'}</div>
+                            <div class="contact-status">
+                                ${contact.isActive ? '✅ Active' : '❌ Inactive'}
+                            </div>
                         </div>
-                        <button class="btn-secondary" onclick="deleteContact('${contact.id}')">Remove</button>
-                    </div>`
-                ).join('');
+                        <div class="contact-actions">
+                            <button class="btn-secondary" onclick="resendCredentials('${contact.id}')" title="Resend Login Credentials">
+                                🔑 Resend
+                            </button>
+                            <button class="btn-secondary" onclick="deleteContact('${contact.id}')">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
             } else {
                 contactsList.innerHTML = `
                     <div class="empty-state">
@@ -467,6 +745,45 @@ async function loadContacts() {
         }
     } catch (error) {
         console.error('Error loading contacts:', error);
+    }
+}
+
+// Resend credentials function
+async function resendCredentials(contactId) {
+    if (!confirm('Generate new login credentials for this contact? The old password will be replaced.')) {
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('gbv_token');
+        const response = await fetch(`${API_BASE}/contacts/${contactId}/resend-credentials`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Find the contact name for the popup
+            const contactsResponse = await fetch(`${API_BASE}/contacts`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const contactsData = await contactsResponse.json();
+            const contact = contactsData.contacts.find(c => c.id === contactId);
+            
+            if (contact) {
+                showContactLoginDetails(contact, data.loginCredentials);
+                showAlert('New credentials generated successfully!');
+            }
+        } else {
+            const errorData = await response.json();
+            alert(errorData.message || 'Failed to generate new credentials');
+        }
+    } catch (error) {
+        alert('Error generating new credentials: ' + error.message);
     }
 }
 
@@ -493,7 +810,7 @@ async function deleteContact(contactId) {
     }
 }
 
-// Evidence Vault Functions
+// EVIDENCE VAULT FUNCTIONS
 function showAddEvidenceModal() {
     document.getElementById('add-evidence-modal').classList.add('active');
 }
@@ -595,7 +912,7 @@ function displayEvidenceList(evidence) {
                 <h4 class="evidence-title">${item.title}</h4>
                 <p class="evidence-description">${item.description || 'No description'}</p>
                 ${item.notes ? `<p class="evidence-notes">${item.notes}</p>` : ''}
-                ${item.fileName ? `<p class="evidence-file">📎 ${item.fileName}</p>` : ''}
+                ${item.fileUrl ? `<p class="evidence-file"><a href="${item.fileUrl}" target="_blank">📎 ${item.fileName || 'View File'}</a></p>` : ''}
             </div>
         </div>
     `).join('');
@@ -615,7 +932,7 @@ function updateEvidenceStats(data) {
     console.log('Evidence stats updated:', data);
 }
 
-// Safety Plan Functions
+// SAFETY PLAN FUNCTIONS
 function addSafeLocation() {
     const name = prompt('Enter safe location name:');
     const address = prompt('Enter address:');
@@ -628,7 +945,7 @@ function callNumber(number) {
     alert(`Calling ${number}...\n\nIn a real app, this would dial the number.`);
 }
 
-// Chat Functions
+// CHAT FUNCTIONS
 function startCounselorChat() {
     alert('Connecting to GBV counselor...\n\nThis would open a secure chat interface.');
 }
@@ -641,7 +958,7 @@ function startSupportGroup() {
     alert('Joining support group chat...\n\nThis would connect you with other survivors safely.');
 }
 
-// Profile Functions
+// PROFILE FUNCTIONS
 async function loadProfile() {
     try {
         const token = localStorage.getItem('gbv_token');
@@ -838,7 +1155,7 @@ function setupSafeWord() {
     }
 }
 
-// Recent Alerts
+// RECENT ALERTS
 async function loadRecentAlerts() {
     try {
         const token = localStorage.getItem('gbv_token');
@@ -849,13 +1166,16 @@ async function loadRecentAlerts() {
         });
 
         if (response.ok) {
-            const alerts = await response.json();
+            const data = await response.json();
+            const alerts = data.alerts;
             const alertsList = document.getElementById('alerts-list');
+            
             if (alerts.length > 0) {
                 alertsList.innerHTML = alerts.slice(0, 3).map(alert => `
                     <div class="alert-item ${alert.status === 'resolved' ? 'resolved' : ''}">
                         <div class="alert-time">${new Date(alert.createdAt).toLocaleString()}</div>
                         <div>${alert.message}</div>
+                        ${alert.pressCount > 1 ? `<div class="alert-press-count">🚨 Pressed ${alert.pressCount} times</div>` : ''}
                         <span class="alert-status ${alert.status === 'active' ? 'status-active' : 'status-resolved'}">
                             ${alert.status}
                         </span>
@@ -870,7 +1190,7 @@ async function loadRecentAlerts() {
     }
 }
 
-// Load user data
+// LOAD USER DATA
 async function loadUserData() {
     if (currentUser) {
         document.getElementById('user-name').textContent = currentUser.name;
@@ -881,7 +1201,7 @@ async function loadUserData() {
     }
 }
 
-// Fake Mode
+// FAKE MODE
 function toggleFakeMode() {
     const btn = document.getElementById('fake-mode-btn');
     if (btn.textContent === 'Activate Calendar Mode') {
@@ -916,7 +1236,7 @@ function toggleFakeMode() {
     }
 }
 
-// Resources Functions
+// RESOURCES FUNCTIONS
 function viewShelters() {
     alert('Showing safe houses and shelters in your area...');
 }
@@ -925,7 +1245,15 @@ function viewLegalAid() {
     alert('Connecting to legal aid services...');
 }
 
-// Make functions globally available
+// MODAL FUNCTIONS
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// MAKE FUNCTIONS GLOBALLY AVAILABLE
 window.deleteContact = deleteContact;
 window.addSafeLocation = addSafeLocation;
 window.callNumber = callNumber;
@@ -942,3 +1270,7 @@ window.manageEmergencyContacts = manageEmergencyContacts;
 window.setupSafeWord = setupSafeWord;
 window.showAddEvidenceModal = showAddEvidenceModal;
 window.hideAddEvidenceModal = hideAddEvidenceModal;
+window.hideModal = hideModal;
+window.copyToClipboard = copyToClipboard;
+window.printCredentials = printCredentials;
+window.resendCredentials = resendCredentials;

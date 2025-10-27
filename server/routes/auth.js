@@ -5,16 +5,20 @@ const User = require('../models/User');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'gbv_secret_key_2024';
 
-// 🧩 Helper function to generate JWT
+// Helper function to generate JWT - FIXED TOKEN TYPE
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user._id, type: 'user' }, // 👈 Include token type
+    { 
+      id: user._id, 
+      type: 'user', // Explicitly set token type
+      email: user.email 
+    },
     JWT_SECRET,
     { expiresIn: '30d' }
   );
 };
 
-// 📝 Register Route
+// Register Route - FIXED
 router.post('/register', async (req, res) => {
   try {
     console.log('🟡 Registration attempt received');
@@ -27,7 +31,14 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const userExists = await User.findOne({ email });
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    const userExists = await User.findOne({ email: email.toLowerCase() });
     if (userExists) {
       return res.status(400).json({ 
         success: false,
@@ -35,10 +46,16 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const user = await User.create({ name, email, password, phone });
+    const user = await User.create({ 
+      name: name.trim(), 
+      email: email.toLowerCase().trim(), 
+      password, 
+      phone: phone.trim() 
+    });
+    
     console.log(`✅ User created successfully: ${user.email}`);
 
-    const token = generateToken(user); // 🪪 New token includes "type: user"
+    const token = generateToken(user);
 
     res.status(201).json({
       success: true,
@@ -53,6 +70,14 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Registration error:', error);
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors).map(err => err.message).join(', ')
+      });
+    }
+    
     res.status(500).json({ 
       success: false,
       message: 'Server error during registration' 
@@ -60,7 +85,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// 🔐 Login Route
+// Login Route - FIXED
 router.post('/login', async (req, res) => {
   try {
     console.log('🟢 Login attempt received');
@@ -73,8 +98,9 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
+      console.log('❌ User not found:', email);
       return res.status(401).json({ 
         success: false,
         message: 'Invalid email or password' 
@@ -83,15 +109,16 @@ router.post('/login', async (req, res) => {
 
     const isPasswordValid = await user.correctPassword(password);
     if (!isPasswordValid) {
+      console.log('❌ Invalid password for:', email);
       return res.status(401).json({ 
         success: false,
         message: 'Invalid email or password' 
       });
     }
 
-    const token = generateToken(user); // ✅ Token now includes { type: 'user' }
+    const token = generateToken(user);
 
-    console.log(`🔑 Token generated for ${user.email}: ${token.substring(0, 30)}...`);
+    console.log(`✅ Login successful for: ${user.email}`);
 
     res.json({
       success: true,

@@ -20,7 +20,17 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static files
-app.use(express.static(path.join(__dirname, '../client')));
+app.use(express.static(path.join(__dirname, '../client/app')));
+app.use('/trusted-contact', express.static(path.join(__dirname, '../client/trusted-contact')));
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
+// Create uploads directory if it doesn't exist
+const fs = require('fs');
+const uploadsDir = path.join(__dirname, '../public/uploads/evidence');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('📁 Created uploads directory');
+}
 
 // MongoDB Atlas Connection
 const MONGODB_URI = 'mongodb+srv://NNOI:NNOI2@cluster0.amrhd90.mongodb.net/gbv_support?retryWrites=true&w=majority&appName=Cluster0';
@@ -42,19 +52,13 @@ mongoose.connect(MONGODB_URI, {
   process.exit(1);
 });
 
-// Import models (ensure they exist)
-require('./models/User');
-require('./models/Contact');
-require('./models/Alert');
-require('./models/Evidence');
-
 // Import routes
 const authRoutes = require('./routes/auth');
 const alertRoutes = require('./routes/alerts');
 const contactRoutes = require('./routes/contacts');
 const contactAuthRoutes = require('./routes/contactAuth');
 const evidenceRoutes = require('./routes/evidence');
-const profileRoutes = require('./routes/profile'); // Make sure this exists
+const profileRoutes = require('./routes/profile');
 const resourceRoutes = require('./routes/resources');
 const chatRoutes = require('./routes/chatsRoutes');
 
@@ -64,7 +68,7 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/contact-auth', contactAuthRoutes);
 app.use('/api/evidence', evidenceRoutes);
-app.use('/api/profile', profileRoutes); 
+app.use('/api/profile', profileRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/chats', chatRoutes);
 
@@ -120,6 +124,9 @@ app.set('io', io);
 const connectedUsers = new Map();
 const connectedContacts = new Map();
 
+// Track alert counts per user to prevent duplicates
+const userAlertCounts = new Map();
+
 io.on('connection', (socket) => {
   console.log('🔌 User connected:', socket.id);
 
@@ -137,13 +144,26 @@ io.on('connection', (socket) => {
     console.log(`📞 Contact ${contactId} joined room`);
   });
 
-  // Emergency alert - FIXED
+  // Emergency alert - FIXED DUPLICATION ISSUE
   socket.on('send-emergency-alert', async (alertData) => {
     try {
       console.log('🚨 Emergency alert received:', alertData);
       
       const Alert = require('./models/Alert');
       const Contact = require('./models/Contact');
+      
+      // Check for duplicate alerts within 30 seconds
+      const userId = alertData.userId;
+      const now = Date.now();
+      const lastAlertTime = userAlertCounts.get(userId) || 0;
+      
+      if (now - lastAlertTime < 30000) { // 30 seconds cooldown
+        console.log('⚠️ Duplicate alert prevented for user:', userId);
+        return;
+      }
+      
+      // Update last alert time
+      userAlertCounts.set(userId, now);
       
       // Get the alert with populated data
       const alert = await Alert.findById(alertData.alertId)
@@ -165,6 +185,8 @@ io.on('connection', (socket) => {
                 location: alert.location,
                 message: alert.message,
                 emergencyType: alert.emergencyType,
+                pressCount: alert.pressCount,
+                alertLevel: alert.alertLevel,
                 createdAt: alert.createdAt,
                 type: 'emergency'
               });
@@ -182,6 +204,8 @@ io.on('connection', (socket) => {
           location: alert.location,
           message: alert.message,
           emergencyType: alert.emergencyType,
+          pressCount: alert.pressCount,
+          alertLevel: alert.alertLevel,
           createdAt: alert.createdAt,
           contactsNotified: alert.trustedContactsNotified?.length || 0
         });
@@ -192,7 +216,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Alert status update - FIXED
+  // Alert status update
   socket.on('alert-status-update', async (updateData) => {
     try {
       console.log('📝 Alert status update:', updateData);
@@ -235,6 +259,54 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Chat messages - SAVE TO DATABASE
+  socket.on('send-chat-message', async (messageData) => {
+    try {
+      const Chat = require('./models/Chat');
+      const { chatId, message, sender, messageType = 'text' } = messageData;
+      
+      const chat = await Chat.findById(chatId);
+      if (!chat) {
+        socket.emit('chat-error', { message: 'Chat not found' });
+        return;
+      }
+      
+      // Add message to chat in database
+      const newMessage = {
+        text: message,
+        sender: sender,
+        messageType: messageType,
+        timestamp: new Date(),
+        read: false
+      };
+      
+      chat.messages.push(newMessage);
+      chat.lastMessage = {
+        text: message,
+        timestamp: new Date(),
+        sender: sender
+      };
+      chat.updatedAt = new Date();
+      
+      await chat.save();
+      
+      // Emit to both parties
+      io.to(`user_${chat.userId}`).emit('new-chat-message', {
+        chatId: chatId,
+        message: newMessage
+      });
+      
+      socket.emit('message-sent', { 
+        success: true, 
+        message: newMessage 
+      });
+      
+    } catch (error) {
+      console.error('❌ Error saving chat message:', error);
+      socket.emit('chat-error', { message: 'Failed to send message' });
+    }
+  });
+
   // Profile update notification
   socket.on('profile-updated', (userData) => {
     console.log('👤 Profile updated:', userData);
@@ -242,12 +314,6 @@ io.on('connection', (socket) => {
       message: 'Profile updated successfully',
       user: userData
     });
-  });
-
-  // Contact alert update
-  socket.on('contact-alert-update', (data) => {
-    console.log('📞 Contact alert update:', data);
-    socket.broadcast.emit('contact-alert-update', data);
   });
 
   // Test connection

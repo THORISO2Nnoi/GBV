@@ -20,7 +20,6 @@ const contactSchema = new mongoose.Schema({
   email: { 
     type: String, 
     required: true, 
-    unique: true, 
     lowercase: true, 
     trim: true 
   },
@@ -43,6 +42,15 @@ const contactSchema = new mongoose.Schema({
   lastActive: {
     type: Date,
     default: Date.now
+  },
+  userPhone: {
+    type: String
+  },
+  userEmail: {
+    type: String
+  },
+  userName: {
+    type: String
   }
 }, { 
   timestamps: true 
@@ -57,7 +65,8 @@ contactSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
   try {
-    this.password = await bcrypt.hash(this.password, 12);
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
     next(error);
@@ -91,6 +100,11 @@ contactSchema.statics.findActiveByUserId = function(userId) {
 // Static method to find contact by email
 contactSchema.statics.findByEmail = function(email) {
   return this.findOne({ email: email.toLowerCase() });
+};
+
+// Static method to find contacts by user
+contactSchema.statics.findByUser = function(userId) {
+  return this.find({ userId }).sort({ createdAt: -1 });
 };
 
 module.exports = mongoose.model('Contact', contactSchema);
