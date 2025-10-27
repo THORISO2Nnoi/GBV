@@ -56,7 +56,7 @@ const contactAuthRoutes = require('./routes/contactAuth');
 const evidenceRoutes = require('./routes/evidence');
 const profileRoutes = require('./routes/profile'); // Make sure this exists
 const resourceRoutes = require('./routes/resources');
-const chatRoutes = require('./routes/chats');
+const chatRoutes = require('./routes/chatsRoutes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
