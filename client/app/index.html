@@ -904,6 +904,28 @@
         .mb-2 { margin-bottom: 1rem; }
         .mb-3 { margin-bottom: 1.5rem; }
 
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 4px;
+            color: white;
+            z-index: 1001;
+            max-width: 300px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification.success { background-color: #28a745; }
+        .notification.error { background-color: #dc3545; }
+        .notification.info { background-color: #17a2b8; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
         /* Responsive Design */
         @media (max-width: 480px) {
             .app-container {
@@ -1281,209 +1303,66 @@
             </nav>
         </div>
 
-       <!-- Evidence Vault Screen -->
-<div id="evidence-screen" class="screen">
-    <div class="screen-header">
-        <h2>Evidence Vault</h2>
-        <button class="btn-primary" id="add-evidence-btn">
-            <span class="btn-icon">+</span>
-            Add Evidence
-        </button>
-    </div>
-    <div class="screen-content">
-        <div class="evidence-content">
-            <!-- Statistics Cards -->
-            <div class="evidence-stats" id="evidence-stats">
-                <div class="stat-card">
-                    <span class="stat-number" id="total-evidence">0</span>
-                    <span class="stat-label">Total Items</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number" id="secure-storage">100%</span>
-                    <span class="stat-label">Secure</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number" id="recent-items">0</span>
-                    <span class="stat-label">This Month</span>
-                </div>
+        <!-- Evidence Vault Screen -->
+        <div id="evidence-screen" class="screen">
+            <div class="screen-header">
+                <h2>Evidence Vault</h2>
+                <button class="btn-primary" id="add-evidence-btn">Add Evidence</button>
             </div>
-
-            <!-- Filters and Search -->
-            <div class="evidence-filters">
-                <div class="filter-group">
-                    <label for="evidence-type-filter">Filter by Type:</label>
-                    <select id="evidence-type-filter">
-                        <option value="all">All Types</option>
-                        <option value="photo">Photos</option>
-                        <option value="document">Documents</option>
-                        <option value="audio">Audio</option>
-                        <option value="video">Video</option>
-                        <option value="note">Notes</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="evidence-sort">Sort by:</label>
-                    <select id="evidence-sort">
-                        <option value="incidentDate-desc">Most Recent Incident</option>
-                        <option value="createdAt-desc">Newest Added</option>
-                        <option value="title-asc">Title A-Z</option>
-                    </select>
-                </div>
-                <div class="search-group">
-                    <input type="text" id="evidence-search" placeholder="Search evidence...">
-                    <button class="btn-secondary" id="search-btn">Search</button>
-                </div>
-            </div>
-
-            <!-- Evidence List -->
-            <div class="evidence-list-container">
-                <div class="evidence-list-header">
-                    <h3>Your Evidence</h3>
-                    <div class="list-actions">
-                        <button class="btn-secondary" id="export-btn">Export</button>
-                        <button class="btn-secondary" id="refresh-btn">Refresh</button>
-                    </div>
-                </div>
-                <div class="evidence-list" id="evidence-list">
-                    <!-- Evidence items will be loaded here -->
-                </div>
-                <div class="pagination" id="evidence-pagination">
-                    <!-- Pagination controls -->
-                </div>
-            </div>
-
-            <!-- Security Notice -->
-            <div class="security-notice">
-                <span class="security-icon">🔒</span>
-                <div>
-                    <h4>Secure & Encrypted Storage</h4>
-                    <p>All evidence is encrypted and stored securely. Only accessible with your authentication. Data is automatically backed up and protected.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <nav class="app-nav">
-        <div class="nav-item" data-screen="app">
-            <span class="nav-icon">🏠</span>
-            <span>Home</span>
-        </div>
-        <div class="nav-item" data-screen="chat">
-            <span class="nav-icon">💬</span>
-            <span>Safe Chat</span>
-        </div>
-        <div class="nav-item" data-screen="contacts">
-            <span class="nav-icon">👥</span>
-            <span>Contacts</span>
-        </div>
-        <div class="nav-item active" data-screen="evidence">
-            <span class="nav-icon">📁</span>
-            <span>Evidence</span>
-        </div>
-    </nav>
-</div>
-
-<!-- Add Evidence Modal -->
-<div id="add-evidence-modal" class="modal">
-    <div class="modal-content">
-        <h3>Add New Evidence</h3>
-        <form id="add-evidence-form" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="evidence-type">Evidence Type *</label>
-                <select id="evidence-type" required>
-                    <option value="">Select Type</option>
-                    <option value="photo">Photo</option>
-                    <option value="document">Document</option>
-                    <option value="audio">Audio Recording</option>
-                    <option value="video">Video</option>
-                    <option value="note">Written Note</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="evidence-title">Title/Description *</label>
-                <input type="text" id="evidence-title" placeholder="Brief description of evidence" required>
-            </div>
-
-            <div class="form-group">
-                <label for="evidence-description">Detailed Description</label>
-                <textarea id="evidence-description" placeholder="Additional details about this evidence..." rows="3"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="evidence-notes">Personal Notes</label>
-                <textarea id="evidence-notes" placeholder="Your personal observations, feelings, or context..." rows="3"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="evidence-incident-date">Incident Date *</label>
-                <input type="datetime-local" id="evidence-incident-date" required>
-            </div>
-
-            <div class="form-group">
-                <label for="evidence-location">Location (Optional)</label>
-                <input type="text" id="evidence-location" placeholder="Where did this happen?">
-            </div>
-
-            <div class="form-group">
-                <label for="evidence-tags">Tags (Optional)</label>
-                <input type="text" id="evidence-tags" placeholder="e.g., verbal-abuse, physical, threat">
-                <small>Separate tags with commas</small>
-            </div>
-
-            <div class="form-group">
-                <label>File Attachment (Optional)</label>
-                <div class="file-upload" id="file-upload-area">
-                    <input type="file" id="evidence-file" class="hidden-input" 
-                           accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt">
-                    <div class="upload-placeholder">
-                        <span class="upload-icon">📎</span>
-                        <p>Click to upload file or drag & drop</p>
-                        <small>Max file size: 10MB. Supported: Images, PDF, DOC, Audio, Video</small>
-                    </div>
-                    <div class="file-preview hidden" id="file-preview">
-                        <span class="file-icon">📄</span>
-                        <div class="file-info">
-                            <span class="file-name" id="file-name">filename.ext</span>
-                            <span class="file-size" id="file-size">0 KB</span>
+            <div class="screen-content">
+                <div class="evidence-content">
+                    <div class="evidence-stats">
+                        <div class="stat-card">
+                            <span class="stat-number" id="total-evidence">0</span>
+                            <span class="stat-label">Total Items</span>
                         </div>
-                        <button type="button" class="remove-file" id="remove-file">×</button>
+                        <div class="stat-card">
+                            <span class="stat-number" id="secure-storage">100%</span>
+                            <span class="stat-label">Secure</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number" id="recent-items">0</span>
+                            <span class="stat-label">This Month</span>
+                        </div>
+                    </div>
+
+                    <div class="evidence-list" id="evidence-list">
+                        <div class="empty-state">
+                            <span class="empty-icon">📁</span>
+                            <h3>No Evidence Stored</h3>
+                            <p>Add photos, documents, or notes as evidence</p>
+                        </div>
+                    </div>
+
+                    <div class="security-notice">
+                        <span class="security-icon">🔒</span>
+                        <div>
+                            <h4>Secure & Encrypted Storage</h4>
+                            <p>All evidence is encrypted and stored securely. Only accessible with your authentication.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div class="form-notice">
-                <span class="notice-icon">🛡️</span>
-                <p>This evidence will be stored securely and encrypted. Only you and trusted contacts (if shared) can access this information.</p>
-            </div>
-
-            <div class="modal-actions">
-                <button type="button" class="btn-secondary" id="cancel-evidence">Cancel</button>
-                <button type="submit" class="btn-primary" id="save-evidence">
-                    <span class="btn-loading hidden" id="save-loading">⏳</span>
-                    Save Evidence
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Evidence Detail Modal -->
-<div id="evidence-detail-modal" class="modal">
-    <div class="modal-content">
-        <div class="evidence-detail-header">
-            <h3 id="detail-title">Evidence Details</h3>
-            <div class="detail-actions">
-                <button class="btn-secondary" id="download-file">Download</button>
-                <button class="btn-secondary" id="edit-evidence">Edit</button>
-                <button class="btn-danger" id="delete-evidence">Delete</button>
-            </div>
+            <nav class="app-nav">
+                <div class="nav-item" data-screen="app">
+                    <span class="nav-icon">🏠</span>
+                    <span>Home</span>
+                </div>
+                <div class="nav-item" data-screen="chat">
+                    <span class="nav-icon">💬</span>
+                    <span>Safe Chat</span>
+                </div>
+                <div class="nav-item" data-screen="contacts">
+                    <span class="nav-icon">👥</span>
+                    <span>Contacts</span>
+                </div>
+                <div class="nav-item active" data-screen="evidence">
+                    <span class="nav-icon">📁</span>
+                    <span>Evidence</span>
+                </div>
+            </nav>
         </div>
-        <div class="evidence-detail-content" id="evidence-detail-content">
-            <!-- Evidence details will be loaded here -->
-        </div>
-    </div>
-</div>
+
         <!-- Safe Chat Screen -->
         <div id="chat-screen" class="screen">
             <div class="screen-header">
@@ -1698,18 +1577,68 @@
                 </form>
             </div>
         </div>
+
+        <!-- Edit Profile Modal -->
+        <div id="edit-profile-modal" class="modal">
+            <div class="modal-content">
+                <h3>Edit Profile</h3>
+                <form id="edit-profile-form">
+                    <div class="form-group">
+                        <label for="edit-name">Full Name</label>
+                        <input type="text" id="edit-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-email">Email</label>
+                        <input type="email" id="edit-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-phone">Phone Number</label>
+                        <input type="tel" id="edit-phone">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary close-modal">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Change Password Modal -->
+        <div id="change-password-modal" class="modal">
+            <div class="modal-content">
+                <h3>Change Password</h3>
+                <form id="change-password-form">
+                    <div class="form-group">
+                        <label for="current-password">Current Password</label>
+                        <input type="password" id="current-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">New Password</label>
+                        <input type="password" id="new-password" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm New Password</label>
+                        <input type="password" id="confirm-password" required minlength="6">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary close-modal">Cancel</button>
+                        <button type="submit" class="btn-primary">Change Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
-    
-    // API base URL - update this to match your backend server
-    // 
-    const API_BASE = 'http://localhost:3000/api';
-    
+    // API base URL
+    const API_BASE = window.location.hostname.includes('localhost') 
+        ? 'http://localhost:3000/api' 
+        : '/api';
+
     let socket;
     let currentUser = null;
     let countdownInterval;
-    
+
     // DOM Elements
     const screens = {
         login: document.getElementById('login-screen'),
@@ -1723,31 +1652,27 @@
         chat: document.getElementById('chat-screen'),
         profile: document.getElementById('profile-screen')
     };
-    
+
     // Initialize app
-    // 
     document.addEventListener('DOMContentLoaded', function() {
         initializeEventListeners();
         checkExistingAuth();
+        initializeModals();
     });
-    
+
     function initializeEventListeners() {
         // Auth navigation
-        // 
         document.getElementById('show-register').addEventListener('click', showRegister);
         document.getElementById('show-login').addEventListener('click', showLogin);
         
         // Forms
-        
         document.getElementById('login-form').addEventListener('submit', handleLogin);
         document.getElementById('register-form').addEventListener('submit', handleRegister);
         
         // App navigation
-         
         document.getElementById('logout-btn').addEventListener('click', handleLogout);
         
-        // Navigation items    
-         
+        // Navigation items
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function() {
                 const screen = this.getAttribute('data-screen');
@@ -1766,7 +1691,6 @@
         document.getElementById('add-contact-form').addEventListener('submit', handleAddContact);
         
         // Evidence
-         
         document.getElementById('add-evidence-btn').addEventListener('click', showAddEvidenceModal);
         document.getElementById('cancel-evidence').addEventListener('click', hideAddEvidenceModal);
         document.getElementById('add-evidence-form').addEventListener('submit', handleAddEvidence);
@@ -1783,1027 +1707,787 @@
         });
 
         // Fake mode
-            document.getElementById('fake-mode-btn').addEventListener('click', toggleFakeMode);
-        }
-        
-        function checkExistingAuth() {
-            const token = localStorage.getItem('gbv_token');
-            const user = localStorage.getItem('gbv_user');
-            
-            if (token && user) {
-                currentUser = JSON.parse(user);
-                showScreen('app');
-                initializeSocket();
-                loadUserData();
-            } else {
-                showScreen('login');
-            }
-        }
+        document.getElementById('fake-mode-btn').addEventListener('click', toggleFakeMode);
+    }
 
-        function showScreen(screenName) {
-            Object.values(screens).forEach(screen => screen.classList.remove('active'));
-            if (screens[screenName]) {
-                screens[screenName].classList.add('active');
-            }
-            
-            // Update navigation
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('active');
-                if (item.getAttribute('data-screen') === screenName) {
-                    item.classList.add('active');
+    function initializeModals() {
+        // Profile modals
+        document.getElementById('edit-profile-form').addEventListener('submit', handleEditProfile);
+        document.getElementById('change-password-form').addEventListener('submit', handleChangePassword);
+        
+        // Close modal buttons
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modal = this.closest('.modal');
+                if (modal) modal.classList.remove('active');
+            });
+        });
+        
+        // Close modals when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
                 }
             });
-        }
+        });
+    }
 
-        function handleNavClick(screenName) {
-            showScreen(screenName);
-            
-            // Load specific screen data
-            switch(screenName) {
-                case 'contacts':
-                    loadContacts();
-                    break;
-                case 'evidence':
-                    loadEvidence();
-                    break;
-                case 'profile':
-                    loadProfile();
-                    break;
-                case 'app':
-                    loadRecentAlerts();
-                    break;
-            }
-        }
-
-        function handleQuickAction(action) {
-            switch(action) {
-                case 'contacts':
-                    showScreen('contacts');
-                    loadContacts();
-                    break;
-                case 'safety-plan':
-                    showScreen('safety');
-                    break;
-                case 'resources':
-                    showScreen('resources');
-                    break;
-                case 'evidence':
-                    showScreen('evidence');
-                    loadEvidence();
-                    break;
-            }
-        }
-
-        function showRegister(e) {
-            e.preventDefault();
-            showScreen('register');
-        }
-
-        function showLogin(e) {
-            e.preventDefault();
+    function checkExistingAuth() {
+        const token = localStorage.getItem('gbv_token');
+        const user = localStorage.getItem('gbv_user');
+        
+        if (token && user) {
+            currentUser = JSON.parse(user);
+            showScreen('app');
+            initializeSocket();
+            loadUserData();
+        } else {
             showScreen('login');
         }
+    }
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
+    function showScreen(screenName) {
+        Object.values(screens).forEach(screen => screen.classList.remove('active'));
+        if (screens[screenName]) {
+            screens[screenName].classList.add('active');
+        }
+        
+        // Update navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-screen') === screenName) {
+                item.classList.add('active');
+            }
+        });
+    }
 
-            console.log("🟡 Attempting login with:", { email, password }); // 1️⃣ Debug: log credentials
+    function handleNavClick(screenName) {
+        showScreen(screenName);
+        
+        // Load specific screen data
+        switch(screenName) {
+            case 'contacts':
+                loadContacts();
+                break;
+            case 'evidence':
+                loadEvidence();
+                break;
+            case 'profile':
+                loadProfile();
+                break;
+            case 'app':
+                loadRecentAlerts();
+                break;
+        }
+    }
 
-            try {
-                const res = await fetch('http://localhost:3000/api/auth/login', {
+    function handleQuickAction(action) {
+        switch(action) {
+            case 'contacts':
+                showScreen('contacts');
+                loadContacts();
+                break;
+            case 'safety-plan':
+                showScreen('safety');
+                break;
+            case 'resources':
+                showScreen('resources');
+                break;
+            case 'evidence':
+                showScreen('evidence');
+                loadEvidence();
+                break;
+        }
+    }
+
+    function showRegister(e) {
+        e.preventDefault();
+        showScreen('register');
+    }
+
+    function showLogin(e) {
+        e.preventDefault();
+        showScreen('login');
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const response = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
-                });
+            });
 
-                console.log("🟢 Response received:", res); // 2️⃣ Debug: response object
+            const data = await response.json();
 
-                const data = await res.json();
-                console.log("🟢 Response JSON:", data); // 3️⃣ Debug: JSON body
-
-                if (res.ok) {
-                // Save token and user info in localStorage
+            if (response.ok) {
                 localStorage.setItem('gbv_token', data.token);
                 localStorage.setItem('gbv_user', JSON.stringify(data.user));
-
-                console.log("✅ Login successful! Token:", data.token);
+                currentUser = data.user;
                 showScreen('app');
                 initializeSocket();
                 loadUserData();
-                showAlert('Login successful!');
-                } else {
-                console.error("❌ Login failed:", data.message);
-                alert("Login failed: " + data.message);
-                }
-            } catch (err) {
-                console.error("🔥 Connection error during login:", err.message);
-                alert('Error: ' + err.message);
+                showAlert('Login successful!', 'success');
+            } else {
+                showAlert(data.message || 'Login failed', 'error');
             }
-            /*try {
-                // Mock login for demo - in real app, this would call your backend
-                if (email && password) {
-                const response = await fetch('http://localhost:5000/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    localStorage.setItem('gbv_token', data.token);
-                    localStorage.setItem('gbv_user', JSON.stringify(data.user));
-                    showScreen('app');
-                    initializeSocket();
-                    loadUserData();
-                    showAlert('Login successful!');
-                } else {
-                    alert(data.message || 'Login failed');
-                }
-            }
-
-            } catch (error) {
-                alert('Login error: ' + error.message);
-            }*/
+        } catch (error) {
+            showAlert('Login error: ' + error.message, 'error');
         }
-        async function handleRegister(e) {
-            e.preventDefault();
-            const name = document.getElementById('register-name').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const phone = document.getElementById('register-phone').value;
-            console.log("🟡 Attempting to register user:", { name, email, phone }); // 1️⃣ Check that inputs exist
+    }
 
-            try {
-                const res = await fetch('http://localhost:10000/api/auth/register', {
+    async function handleRegister(e) {
+        e.preventDefault();
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const phone = document.getElementById('register-phone').value;
+
+        try {
+            const response = await fetch(`${API_BASE}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, password, phone })
-                });
+            });
 
-                console.log("🟢 Response received:", res); // 2️⃣ Log response object
-                
-                const data = await res.json();
-                 console.log("🟢 Response JSON:", data); // 3️⃣ Log parsed JSON
+            const data = await response.json();
 
-                if (res.ok) {
+            if (response.ok) {
                 localStorage.setItem('gbv_token', data.token);
                 localStorage.setItem('gbv_user', JSON.stringify(data.user));
-
-                 console.log("✅ Registration successful! Token:", data.token); // 4️⃣ Confirm token
+                currentUser = data.user;
                 showScreen('app');
-                showAlert('Registration successful!');
-                } else {
-                alert(data.message);
-                }                
-                // Mock registration for demo
-                /*if (name && email && password && phone) {
-                    const mockUser = {
-                        id: 'user_' + Date.now(),
-                        name: name,
-                        email: email,
-                        phone: phone
-                    };
-                    
-                    //localStorage.setItem('gbv_token', 'mock_jwt_token_' + Date.now());
-                    //localStorage.setItem('gbv_user', JSON.stringify(mockUser));
-                    //currentUser = mockUser;
-                    //showScreen('app');
-                    //initializeSocket();
-                    //showAlert('Registration successful!');
-                } else {
-                    alert('Please fill all fields');
-                }
-                    */
-            } catch (error) {
-                alert('Registration error: ' + error.message);
-            }
-        }
-         function handleLogout() {
-            localStorage.removeItem('gbv_token');
-            localStorage.removeItem('gbv_user');
-            currentUser = null;
-            if (socket) socket.disconnect();
-            showScreen('login');
-        }
-
-        function initializeSocket() {
-            // Mock socket initialization for demo
-            console.log('Socket initialized for user:', currentUser?.name);
-        }
-
-        function showAlert(message) {
-            const alertDiv = document.createElement('div');
-            alertDiv.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #4CAF50;
-                color: white;
-                padding: 15px 20px;
-                border-radius: 5px;
-                z-index: 1000;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                max-width: 300px;
-            `;
-            alertDiv.textContent = message;
-            document.body.appendChild(alertDiv);
-            
-            setTimeout(() => {
-                document.body.removeChild(alertDiv);
-            }, 5000);
-        }
-
-        // Emergency Functions
-        function showEmergencyScreen() {
-            showScreen('emergency');
-            startCountdown();
-            //getCurrentLocation();
-            loadEmergencyContacts();
-        }
-
-        function startCountdown() {
-            let seconds = 5;
-            const countdownElement = document.getElementById('countdown');
-            const countdownSeconds = document.getElementById('countdown-seconds');
-            const messageElement = document.getElementById('help-message'); // 👈 make sure you have this element in HTML
-
-            countdownElement.textContent = seconds;
-            countdownSeconds.textContent = seconds;
-
-            countdownInterval = setInterval(() => {
-                seconds--;
-                countdownElement.textContent = seconds;
-                countdownSeconds.textContent = seconds;
-
-                if (seconds <= 0) {
-                    // 🛑 stop countdown
-                    clearInterval(countdownInterval)
-
-                    countdownElement.textContent = "0";
-                    countdownSeconds.textContent = "0";
-
-                    if(messageElement) {
-                       messageElement.innerHTML = "<h2>🚨 Help is on the way!</h2>";
-                       countdownSeconds.parentElement.style.display = 'none';
-                       sendEmergencyAlert();
-                    }
-                    
-                }
-            }, 1000);
-        }
-
-        function cancelEmergency() {
-            clearInterval(countdownInterval);
-            showScreen('app');
-            showAlert('Emergency cancelled');
-        }
-
-        function sendEmergencyNow() {
-            clearInterval(countdownInterval);
-            sendEmergencyAlert();
-        }
-
-        // Enhanced Emergency Alert System
-        async function sendEmergencyAlert() {
-            const location = document.getElementById('location-text').textContent;
-            
-            try {
-                const token = localStorage.getItem('gbv_token');
-                const response = await fetch(`${API_BASE}/alerts/emergency`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        location: location,
-                        message: 'Emergency assistance needed'
-                    })
-                });
-                console.log('✅ Alert created Location:', location); // Debug log
-
-                if (response.ok) {
-                    const alertData = await response.json();
-                    console.log('✅ Alert created successfully:', alertData);
-                    
-                    showAlert('🚨 Emergency alert sent to your trusted contacts!');
-                    //showScreen('app');
-                    loadRecentAlerts();
-                } else {
-                    throw new Error('Failed to send emergency alert');
-                }
-            } catch (error) {
-                console.error('❌ Error sending alert:', error);
-                alert('Error sending alert: ' + error.message);
-            }
-        }
-
-        function getCurrentLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        document.getElementById('location-text').textContent = 
-                            `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
-                    },
-                    (error) => {
-                        document.getElementById('location-text').textContent = 
-                            'Location access denied. Using last known location.';
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 60000
-                    }
-                );
+                initializeSocket();
+                showAlert('Registration successful!', 'success');
             } else {
-                document.getElementById('location-text').textContent = 
-                    'Geolocation not supported by browser';
+                showAlert(data.message || 'Registration failed', 'error');
             }
+        } catch (error) {
+            showAlert('Registration error: ' + error.message, 'error');
         }
+    }
 
-        // Contacts Functions
-        async function loadEmergencyContacts() {
-            try {
-                const contacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
-                const contactsContainer = document.getElementById('emergency-contacts');
-                if (contacts.length > 0) {
-                    contactsContainer.innerHTML = contacts.map(contact => 
-                        `<div class="contact-item">
-                            <span>${contact.name}</span>
-                            <span>${contact.relationship || 'Trusted Contact'}</span>
-                        </div>`
-                    ).join('');
-                } else {
-                    contactsContainer.innerHTML = '<p>No trusted contacts added yet.</p>';
-                }
-            } catch (error) {
-                console.error('Error loading contacts:', error);
-                document.getElementById('emergency-contacts').innerHTML = '<p>Error loading contacts</p>';
-            }
-        }
+    function handleLogout() {
+        localStorage.removeItem('gbv_token');
+        localStorage.removeItem('gbv_user');
+        currentUser = null;
+        if (socket) socket.disconnect();
+        showScreen('login');
+    }
 
-        function showAddContactModal() {
-            document.getElementById('add-contact-modal').classList.add('active');
-        }
-
-        function hideAddContactModal() {
-            document.getElementById('add-contact-modal').classList.remove('active');
-            document.getElementById('add-contact-form').reset();
+    function initializeSocket() {
+        const socketUrl = window.location.hostname.includes('localhost') 
+            ? 'http://localhost:3000' 
+            : window.location.origin;
+        
+        socket = io(socketUrl);
+        
+        if (currentUser && currentUser.id) {
+            socket.emit('join-user-room', currentUser.id);
         }
         
-        // Evidence Functions
-        // Enhanced evidence submission with better error handling
-        async function handleAddEvidence(e) {
-            e.preventDefault();
-            console.log('📁 Starting evidence submission...');
+        socket.on('alert-sent', (data) => {
+            showAlert(`Emergency alert sent to ${data.contactsNotified} trusted contacts!`, 'success');
+            loadRecentAlerts();
+        });
 
-            const submitBtn = document.getElementById('save-evidence');
-            const loadingSpinner = document.getElementById('save-loading');
+        socket.on('alert-status-update', (data) => {
+            showAlert(`${data.contactName} marked your alert as ${data.status}`, 'info');
+            loadRecentAlerts();
+        });
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+    }
+
+    function showAlert(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 5000);
+    }
+
+    // Emergency Functions
+    function showEmergencyScreen() {
+        showScreen('emergency');
+        startCountdown();
+        getCurrentLocation();
+        loadEmergencyContacts();
+    }
+
+    function startCountdown() {
+        let seconds = 5;
+        document.getElementById('countdown').textContent = seconds;
+        document.getElementById('countdown-seconds').textContent = seconds;
+        
+        countdownInterval = setInterval(() => {
+            seconds--;
+            document.getElementById('countdown').textContent = seconds;
+            document.getElementById('countdown-seconds').textContent = seconds;
             
-            try {
-                if (submitBtn) submitBtn.disabled = true;
-                if (loadingSpinner) loadingSpinner.classList.remove('hidden');
-                
-                // Collect input data
-                // 
-                const type = document.getElementById('evidence-type').value;
-                const title = document.getElementById('evidence-title').value;
-                const description = document.getElementById('evidence-description').value;
-                const notes = document.getElementById('evidence-notes').value;
-                const incidentDate = document.getElementById('evidence-incident-date').value;
-                const location = document.getElementById('evidence-location').value;
-                const tags = document.getElementById('evidence-tags').value;
-                
-                if (!type || !title || !incidentDate) {
-                    throw new Error('Please fill in all required fields (Type, Title, and Date)');
-                }
-                
-                const fileInput = document.getElementById('evidence-file');
-                const formData = new FormData();
-                
-                formData.append('type', type);
-                formData.append('title', title);
-                formData.append('description', description || title);
-                formData.append('notes', notes);
-                formData.append('incidentDate', incidentDate);
-                formData.append('location', location);
-                formData.append('tags', tags);
-                
-                if (fileInput && fileInput.files.length > 0) {
-                    formData.append('file', fileInput.files[0]);
-                    console.log('📁 Attached file:', fileInput.files[0].name);
-                }
-                
-                const token = localStorage.getItem('gbv_token');
-                if (!token) throw new Error('Authentication required. Please log in again.');
-                
-                console.log('📡 Sending evidence to server...');
-                
-                const response = await fetch(`${API_BASE}/evidence`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ message: 'Unknown server error' }));
-                    throw new Error(errorData.message || `Server error: ${response.status}`);
-                }
-                const result = await response.json();
-                console.log('✅ Evidence saved successfully:', result);
-                
-                hideAddEvidenceModal();
-                showAlert('Evidence saved securely! 🔒');
-                
-                setTimeout(() => loadEvidence(), 1000);
-            } catch (error) {
-                console.error('❌ Error saving evidence:', error);
-                showAlert(`Error: ${error.message}`, 'error');
-                
-                if (error.message.includes('Authentication')) {
-                    setTimeout(() => handleLogout(), 2000);
-                }
-            } finally {
-                if (submitBtn) submitBtn.disabled = false;
-                if (loadingSpinner) loadingSpinner.classList.add('hidden');
+            if (seconds <= 0) {
+                sendEmergencyAlert();
             }
-        }
-        // Enhanced Trusted Contact Management
-        async function handleAddContact(e) {
-            e.preventDefault();
-            const name = document.getElementById('contact-name').value;
-            const phone = document.getElementById('contact-phone').value;
-            const email = document.getElementById('contact-email').value;
-            const relationship = document.getElementById('contact-relationship').value;
+        }, 1000);
+    }
 
-            try {
-                const token = localStorage.getItem('gbv_token');
-                const response = await fetch(`${API_BASE}/contacts`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ name, phone, email, relationship })
-                });
+    function cancelEmergency() {
+        clearInterval(countdownInterval);
+        showScreen('app');
+        showAlert('Emergency cancelled', 'info');
+    }
 
-                if (response.ok) {
-                    const data = await response.json();
-                    hideAddContactModal();
-                    showAlert(`Contact ${name} added successfully!`);
-                    loadContacts();
-                    
-                    if (data.tempPassword) {
-                        alert(`Temporary password for ${name}: ${data.tempPassword}\n\nShare this with your contact so they can login to the trusted contact app.`);
-                    }
-                } else {
-                    const error = await response.json();
-                    alert('Failed to add contact: ' + (error.message || 'Unknown error'));
-                }
-            } catch (error) {
-                alert('Error adding contact: ' + error.message);
+    function sendEmergencyNow() {
+        clearInterval(countdownInterval);
+        sendEmergencyAlert();
+    }
+
+    async function sendEmergencyAlert() {
+        const location = document.getElementById('location-text').textContent;
+        
+        try {
+            const token = localStorage.getItem('gbv_token');
+            const response = await fetch(`${API_BASE}/alerts/emergency`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    location: location,
+                    message: 'Emergency assistance needed'
+                })
+            });
+
+            if (response.ok) {
+                showAlert('Emergency alert sent to your trusted contacts!', 'success');
+                showScreen('app');
+                loadRecentAlerts();
+            } else {
+                throw new Error('Failed to send emergency alert');
             }
+        } catch (error) {
+            console.error('Error sending alert:', error);
+            showAlert('Error sending alert: ' + error.message, 'error');
         }
-        async function loadContacts() {
-            const contactsList = document.getElementById('contacts-list');
-            const token = localStorage.getItem('gbv_token'); // 🪪 JWT token stored on login
-              try {
-                const response = await fetch('http://localhost:3000/api/contacts', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                     }
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`Server returned ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    const contacts = data.contacts || [];
-                    console.log('📡 Contacts loaded from API:', contacts);
-                    // 💾 2️⃣ Save a copy locally for offline access
+    }
 
-                    
-                    localStorage.setItem('gbv_contacts', JSON.stringify(contacts));
-                    
-                    // 🖼️ 3️⃣ Render contacts on the page
+    function getCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('location-text').textContent = 
+                        `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+                },
+                (error) => {
+                    document.getElementById('location-text').textContent = 
+                        'Location access denied';
+                }
+            );
+        } else {
+            document.getElementById('location-text').textContent = 
+                'Geolocation not supported';
+        }
+    }
 
-                    if (contacts.length > 0) {
-                        contactsList.innerHTML = contacts.map(contact =>
+    // Contacts Functions
+    async function loadEmergencyContacts() {
+        try {
+            const contacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
+            const contactsContainer = document.getElementById('emergency-contacts');
+            if (contacts.length > 0) {
+                contactsContainer.innerHTML = contacts.map(contact => 
+                    `<div class="contact-item">
+                        <span>${contact.name}</span>
+                        <span>${contact.relationship || 'Trusted Contact'}</span>
+                    </div>`
+                ).join('');
+            } else {
+                contactsContainer.innerHTML = '<p>No trusted contacts added yet.</p>';
+            }
+        } catch (error) {
+            console.error('Error loading contacts:', error);
+            document.getElementById('emergency-contacts').innerHTML = '<p>Error loading contacts</p>';
+        }
+    }
+
+    function showAddContactModal() {
+        document.getElementById('add-contact-modal').classList.add('active');
+    }
+
+    function hideAddContactModal() {
+        document.getElementById('add-contact-modal').classList.remove('active');
+        document.getElementById('add-contact-form').reset();
+    }
+
+    async function handleAddContact(e) {
+        e.preventDefault();
+        const name = document.getElementById('contact-name').value;
+        const phone = document.getElementById('contact-phone').value;
+        const email = document.getElementById('contact-email').value;
+        const relationship = document.getElementById('contact-relationship').value;
+
+        try {
+            const token = localStorage.getItem('gbv_token');
+            const response = await fetch(`${API_BASE}/contacts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name, phone, email, relationship })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                hideAddContactModal();
+                showAlert(`Contact ${name} added successfully!`, 'success');
+                loadContacts();
+            } else {
+                showAlert('Failed to add contact', 'error');
+            }
+        } catch (error) {
+            showAlert('Error adding contact: ' + error.message, 'error');
+        }
+    }
+
+    async function loadContacts() {
+        try {
+            const token = localStorage.getItem('gbv_token');
+            const response = await fetch(`${API_BASE}/contacts`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const contacts = await response.json();
+                const contactsList = document.getElementById('contacts-list');
+                if (contacts.length > 0) {
+                    contactsList.innerHTML = contacts.map(contact => 
                         `<div class="contact-item">
                             <div class="contact-info">
                                 <div class="contact-name">${contact.name}</div>
                                 <div class="contact-details">${contact.phone} • ${contact.email}</div>
                                 <div class="contact-relationship">${contact.relationship || 'Trusted Contact'}</div>
-                                </div>
-                                <button class="btn-secondary" onclick="deleteContact('${contact._id}')">Remove</button>
-                                </div>`
-                            ).join('');
-                        } else {
-                            contactsList.innerHTML = `
-                            <div class="empty-state">
-                                <span class="empty-icon">👥</span>
-                                <h3>No Trusted Contacts</h3>
-                                <p>Add trusted contacts who will be notified in emergencies</p>
-                                <button class="btn-primary" onclick="showAddContactModal()">Add First Contact</button>
-                                </div>
-                                `;
-                            }
-                        } catch (error) {
-                            console.error('❌ Error loading contacts:', error);
-                            
-                            // 🧭 4️⃣ Fallback: Load local data if server fails
-                            const localContacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
-                            
-                            if (localContacts.length > 0) {
-                                console.warn('⚠️ Using cached contacts from localStorage');
-                                contactsList.innerHTML = localContacts.map(contact =>
-                                `<div class="contact-item">
-                                    <div class="contact-info">
-                                        <div class="contact-name">${contact.name}</div>
-                                        <div class="contact-details">${contact.phone} • ${contact.email}</div>
-                                        <div class="contact-relationship">${contact.relationship || 'Trusted Contact'}</div>
-                                        </div>
-                                        <button class="btn-secondary" onclick="deleteContact('${contact.id || contact._id}')">Remove</button>
-                                        </div>`
-                                    ).join('');
-                                } else {
-                                    contactsList.innerHTML = `
-                                    <div class="empty-state">
-                                        <span class="empty-icon">💾</span>
-                                        <h3>Error loading contacts</h3>
-                                        <p>Try refreshing the page or checking your connection</p>
-                                        </div>
-                                        `;
-                                    }
-                                }
-                            }
-
-                            // 🧹 Delete contact from both localStorage and backend
-                         
-                            async function deleteContact(contactId) {
-                                
-                                if (confirm('Are you sure you want to remove this trusted contact?')) {
-                                    
-                                    try {
-                                        console.log('🧩 Deleting contact with ID:', contactId);
-                                        
-                                        // Get token for authentication
-                                        // 
-                                        const token = localStorage.getItem('gbv_token');
-                                        
-                                        if (!token) {
-                                            
-                                            showAlert('⚠️ Please log in again — authentication token missing.');
-                                            
-                                            return;
-                                        }
-                                        
-                                        // 🛰️ Delete from backen
-                                        // 
-                                        
-                                        const response = await fetch(`http://localhost:3000/api/contacts/${contactId}`, {
-                                            method: 'DELETE',
-                                            headers: {
-                                                'Authorization': `Bearer ${token}`,
-                                                'Content-Type': 'application/json'
-                                            }
-                                        });
-                                        
-                                        if (!response.ok) {
-                                            
-                                            const errorText = await response.text();
-                                            console.error('🚨 Backend delete failed:', errorText);
-                                            
-                                            showAlert('❌ Failed to remove contact from server.');
-                                            return;
-                                        }
-                                        
-                                        console.log('✅ Contact deleted from backend.');
-                                        
-                                        // 💾 Delete from localStorage
-                                        // 
-                                        
-                                        const contacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
-                                        const updatedContacts = contacts.filter(contact => contact.id !== contactId);
-                                        
-                                        localStorage.setItem('gbv_contacts', JSON.stringify(updatedContacts));
-                                        
-                                        console.log('🧹 Contact removed locally.');
-                                        showAlert('✅ Contact removed successfully.');
-                                        
-                                        loadContacts();
-                                    
-                                    } catch (error) {
-                                        console.error('💥 Error deleting contact:', error);
-                                        showAlert('❌ Error removing contact: ' + error.message);
-                                    }
-                                }
-                            }
-                            // Enhanced Evidence Vault Functions
-                            // 
-                            function showAddEvidenceModal() {
-                                console.log('📁 Opening add evidence modal');
-                                document.getElementById('add-evidence-modal').classList.add('active');
-                                
-                                // Set current date and time as default
-                                // Set current date and time as default
-                                const now = new Date();
-                                const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                                document.getElementById('evidence-incident-date').value = localDateTime;
-                            }
-                            
-                            function hideAddEvidenceModal() {
-                                document.getElementById('add-evidence-modal').classList.remove('active');
-                                document.getElementById('add-evidence-form').reset();
-                                
-                                // Reset file preview
-                                // 
-                                const filePreview = document.getElementById('file-preview');
-                                const uploadPlaceholder = document.querySelector('.upload-placeholder');
-                                
-                                if (filePreview) {
-                                    filePreview.classList.add('hidden');
-                                }
-                                
-                                if (uploadPlaceholder) {
-                                    uploadPlaceholder.classList.remove('hidden');
-                                }
-                            }
-                            
-
-// Enhanced file upload handling
-function setupFileUpload() {
-    const fileInput = document.getElementById('evidence-file');
-    const uploadArea = document.getElementById('file-upload-area');
-    const filePreview = document.getElementById('file-preview');
-    const fileName = document.getElementById('file-name');
-    const fileSize = document.getElementById('file-size');
-    const removeFile = document.getElementById('remove-file');
-
-    if (!fileInput || !uploadArea) return;
-
-    // Drag and drop functionality
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
-    });
-
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        if (e.dataTransfer.files.length) {
-            fileInput.files = e.dataTransfer.files;
-            updateFilePreview();
-        }
-    });
-
-    // File input change
-    fileInput.addEventListener('change', updateFilePreview);
-
-    // Remove file
-    if (removeFile) {
-        removeFile.addEventListener('click', (e) => {
-            e.preventDefault();
-            fileInput.value = '';
-            if (filePreview) filePreview.classList.add('hidden');
-            if (uploadArea.querySelector('.upload-placeholder')) {
-                uploadArea.querySelector('.upload-placeholder').classList.remove('hidden');
+                            </div>
+                            <button class="btn-secondary" onclick="deleteContact('${contact.id}')">Remove</button>
+                        </div>`
+                    ).join('');
+                } else {
+                    contactsList.innerHTML = `
+                        <div class="empty-state">
+                            <span class="empty-icon">👥</span>
+                            <h3>No Trusted Contacts</h3>
+                            <p>Add trusted contacts who will be notified in emergencies</p>
+                        </div>
+                    `;
+                }
             }
-        });
-    }
-
-    // Click to upload
-    uploadArea.addEventListener('click', () => fileInput.click());
-}
-
-function updateFilePreview() {
-    const fileInput = document.getElementById('evidence-file');
-    const filePreview = document.getElementById('file-preview');
-    const fileName = document.getElementById('file-name');
-    const fileSize = document.getElementById('file-size');
-    const uploadPlaceholder = document.querySelector('.upload-placeholder');
-
-    if (!fileInput || !filePreview || !uploadPlaceholder) return;
-
-    if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        if (fileName) fileName.textContent = file.name;
-        if (fileSize) fileSize.textContent = formatFileSize(file.size);
-        
-        // Update icon based on file type
-        const fileIcon = filePreview.querySelector('.file-icon');
-        if (fileIcon) {
-            fileIcon.textContent = getFileIcon(file.type);
+        } catch (error) {
+            console.error('Error loading contacts:', error);
         }
-        
-        uploadPlaceholder.classList.add('hidden');
-        filePreview.classList.remove('hidden');
     }
-}
 
-function getFileIcon(mimeType) {
-    if (mimeType.startsWith('image/')) return '🖼️';
-    if (mimeType.startsWith('audio/')) return '🎵';
-    if (mimeType.startsWith('video/')) return '🎥';
-    if (mimeType.includes('pdf')) return '📕';
-    if (mimeType.includes('document') || mimeType.includes('word')) return '📄';
-    return '📎';
-}
+    async function deleteContact(contactId) {
+        if (confirm('Are you sure you want to remove this trusted contact?')) {
+            try {
+                const token = localStorage.getItem('gbv_token');
+                const response = await fetch(`${API_BASE}/contacts/${contactId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
 
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+                if (response.ok) {
+                    showAlert('Contact removed successfully', 'success');
+                    loadContacts();
+                } else {
+                    showAlert('Failed to remove contact', 'error');
+                }
+            } catch (error) {
+                showAlert('Error removing contact: ' + error.message, 'error');
+            }
+        }
+    }
 
+    // Evidence Vault Functions
+    function showAddEvidenceModal() {
+        document.getElementById('add-evidence-modal').classList.add('active');
+    }
 
-// Enhanced evidence loading
-async function loadEvidence() {
-    console.log('📁 Loading evidence...');
-    
-    try {
-        const token = localStorage.getItem('gbv_token');
-        if (!token) {
-            console.log('❌ No authentication token');
+    function hideAddEvidenceModal() {
+        document.getElementById('add-evidence-modal').classList.remove('active');
+        document.getElementById('add-evidence-form').reset();
+    }
+
+    async function handleAddEvidence(e) {
+        e.preventDefault();
+        const type = document.getElementById('evidence-type').value;
+        const title = document.getElementById('evidence-title').value;
+        const notes = document.getElementById('evidence-notes').value;
+        const incidentDate = document.getElementById('evidence-date').value;
+
+        try {
+            const token = localStorage.getItem('gbv_token');
+            const formData = new FormData();
+            formData.append('type', type);
+            formData.append('title', title);
+            formData.append('notes', notes);
+            formData.append('incidentDate', incidentDate);
+
+            const fileInput = document.getElementById('evidence-file');
+            if (fileInput.files.length > 0) {
+                formData.append('file', fileInput.files[0]);
+            }
+
+            const response = await fetch(`${API_BASE}/evidence`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                hideAddEvidenceModal();
+                showAlert('Evidence saved securely!', 'success');
+                loadEvidence();
+            } else {
+                showAlert('Failed to save evidence', 'error');
+            }
+        } catch (error) {
+            showAlert('Error saving evidence: ' + error.message, 'error');
+        }
+    }
+
+    async function loadEvidence() {
+        try {
+            const token = localStorage.getItem('gbv_token');
+            const response = await fetch(`${API_BASE}/evidence`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                displayEvidenceList(data.evidence);
+                updateEvidenceStats(data);
+            }
+        } catch (error) {
+            console.error('Error loading evidence:', error);
+        }
+    }
+
+    function displayEvidenceList(evidence) {
+        const evidenceList = document.getElementById('evidence-list');
+        const totalEvidence = document.getElementById('total-evidence');
+
+        if (evidence.length === 0) {
+            evidenceList.innerHTML = `
+                <div class="empty-state">
+                    <span class="empty-icon">📁</span>
+                    <h3>No Evidence Stored</h3>
+                    <p>Add photos, documents, or notes as evidence</p>
+                </div>
+            `;
             return;
         }
 
-        const response = await fetch(`${API_BASE}/evidence`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (totalEvidence) {
+            totalEvidence.textContent = evidence.length;
         }
 
-        const data = await response.json();
+        evidenceList.innerHTML = evidence.map(item => `
+            <div class="evidence-item">
+                <div class="evidence-item-header">
+                    <div class="evidence-type-badge evidence-type-${item.type}">
+                        ${getEvidenceTypeIcon(item.type)} ${item.type}
+                    </div>
+                    <div class="evidence-date">
+                        ${new Date(item.incidentDate).toLocaleDateString()}
+                    </div>
+                </div>
+                <div class="evidence-item-content">
+                    <h4 class="evidence-title">${item.title}</h4>
+                    <p class="evidence-description">${item.description || 'No description'}</p>
+                    ${item.notes ? `<p class="evidence-notes">${item.notes}</p>` : ''}
+                    ${item.fileName ? `<p class="evidence-file">📎 ${item.fileName}</p>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getEvidenceTypeIcon(type) {
+        const icons = {
+            'photo': '🖼️',
+            'document': '📄',
+            'audio': '🎵',
+            'note': '📝'
+        };
+        return icons[type] || '📎';
+    }
+
+    function updateEvidenceStats(data) {
+        console.log('Evidence stats updated:', data);
+    }
+
+    // Safety Plan Functions
+    function addSafeLocation() {
+        const name = prompt('Enter safe location name:');
+        const address = prompt('Enter address:');
+        if (name && address) {
+            showAlert(`Safe location "${name}" added`, 'success');
+        }
+    }
+
+    function callNumber(number) {
+        alert(`Calling ${number}...\n\nIn a real app, this would dial the number.`);
+    }
+
+    // Chat Functions
+    function startCounselorChat() {
+        alert('Connecting to GBV counselor...\n\nThis would open a secure chat interface.');
+    }
+
+    function startLegalChat() {
+        alert('Connecting to legal advisor...\n\nThis would open a secure chat interface.');
+    }
+
+    function startSupportGroup() {
+        alert('Joining support group chat...\n\nThis would connect you with other survivors safely.');
+    }
+
+    // Profile Functions
+    async function loadProfile() {
+        try {
+            const token = localStorage.getItem('gbv_token');
+            const response = await fetch(`${API_BASE}/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const profileData = await response.json();
+                const user = profileData.user;
+                const stats = profileData.stats;
+
+                document.getElementById('profile-name').textContent = user.name;
+                document.getElementById('profile-email').textContent = user.email;
+                document.getElementById('profile-phone').textContent = user.phone || 'Not provided';
+                document.getElementById('profile-avatar').textContent = user.name.charAt(0).toUpperCase();
+                
+                document.getElementById('trusted-contacts-count').textContent = stats.trustedContacts;
+                document.getElementById('evidence-items').textContent = stats.evidenceItems;
+                document.getElementById('alerts-sent').textContent = stats.alertsSent;
+
+                // Update current user data
+                currentUser = user;
+                localStorage.setItem('gbv_user', JSON.stringify(user));
+            }
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            showAlert('Error loading profile data', 'error');
+        }
+    }
+
+    function editProfile() {
+        if (!currentUser) {
+            showAlert('Please log in to edit profile', 'error');
+            return;
+        }
         
-        if (data.success && data.evidence) {
-            displayEvidenceList(data.evidence);
-            updateEvidenceStats(data);
-        } else {
-            throw new Error(data.message || 'Invalid response format');
-        }
-
-    } catch (error) {
-        console.error('❌ Error loading evidence:', error);
-        displayEvidenceError('Failed to load evidence: ' + error.message);
-    }
-}
-
-function displayEvidenceList(evidence) {
-    const evidenceList = document.getElementById('evidence-list');
-    const totalEvidence = document.getElementById('total-evidence');
-    const recentItems = document.getElementById('recent-items');
-
-    if (!evidenceList) return;
-
-    if (evidence.length === 0) {
-        evidenceList.innerHTML = `
-            <div class="empty-state">
-                <span class="empty-icon">📁</span>
-                <h3>No Evidence Stored</h3>
-                <p>Add photos, documents, or notes as evidence</p>
-                <button class="btn-primary" onclick="showAddEvidenceModal()">Add First Evidence</button>
-            </div>
-        `;
-        return;
+        // Populate form with current data
+        document.getElementById('edit-name').value = currentUser.name;
+        document.getElementById('edit-email').value = currentUser.email;
+        document.getElementById('edit-phone').value = currentUser.phone || '';
+        
+        // Show modal
+        document.getElementById('edit-profile-modal').classList.add('active');
     }
 
-    // Update stats
-    if (totalEvidence) {
-        totalEvidence.textContent = evidence.length;
-    }
-    if (recentItems) {
-        const recentCount = evidence.filter(item => {
-            const itemDate = new Date(item.createdAt);
-            const monthAgo = new Date();
-            monthAgo.setMonth(monthAgo.getMonth() - 1);
-            return itemDate > monthAgo;
-        }).length;
-        recentItems.textContent = recentCount;
+    function changePassword() {
+        // Clear password form
+        document.getElementById('change-password-form').reset();
+        
+        // Show modal
+        document.getElementById('change-password-modal').classList.add('active');
     }
 
-    // Display evidence items
-    evidenceList.innerHTML = evidence.map(item => `
-        <div class="evidence-item" data-id="${item._id || item.id}">
-            <div class="evidence-item-header">
-                <div class="evidence-type-badge evidence-type-${item.type}">
-                    ${getEvidenceTypeIcon(item.type)} ${item.type}
-                </div>
-                <div class="evidence-date">
-                    ${new Date(item.date).toLocaleDateString()}
-                </div>
-            </div>
-            <div class="evidence-item-content">
-                <h4 class="evidence-title">${item.title}</h4>
-                <p class="evidence-description">${item.description || 'No description'}</p>
-                ${item.notes ? `<p class="evidence-notes">${item.notes}</p>` : ''}
-                ${item.location ? `<p class="evidence-location">📍 ${item.location}</p>` : ''}
-                ${item.fileName ? `<p class="evidence-file">📎 ${item.fileName}</p>` : ''}
-            </div>
-            <div class="evidence-item-footer">
-                <div class="evidence-tags">
-                    ${item.tags && item.tags.length > 0 ? 
-                      item.tags.map(tag => `<span class="evidence-tag">${tag}</span>`).join('') : 
-                      '<span class="no-tags">No tags</span>'
-                    }
-                </div>
-                <button class="btn-secondary btn-sm" onclick="viewEvidenceDetail('${item._id || item.id}')">
-                    View Details
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function getEvidenceTypeIcon(type) {
-    const icons = {
-        'photo': '🖼️',
-        'document': '📄',
-        'audio': '🎵',
-        'video': '🎥',
-        'note': '📝',
-        'other': '📎'
-    };
-    return icons[type] || '📎';
-}
-
-function displayEvidenceError(message) {
-    const evidenceList = document.getElementById('evidence-list');
-    if (evidenceList) {
-        evidenceList.innerHTML = `
-            <div class="error-state">
-                <span class="error-icon">⚠️</span>
-                <h3>Error Loading Evidence</h3>
-                <p>${message}</p>
-                <button class="btn-primary" onclick="loadEvidence()">Try Again</button>
-            </div>
-        `;
-    }
-}
-
-function updateEvidenceStats(data) {
-    // Update any additional stats if needed
-    console.log('📊 Evidence stats updated:', data);
-}
-
-// Initialize evidence functionality
-function initializeEvidenceVault() {
-    console.log('🔧 Initializing evidence vault...');
-    
-    // Set up event listeners
-    const addEvidenceBtn = document.getElementById('add-evidence-btn');
-    const cancelEvidenceBtn = document.getElementById('cancel-evidence');
-    const addEvidenceForm = document.getElementById('add-evidence-form');
-    
-    if (addEvidenceBtn) {
-        addEvidenceBtn.addEventListener('click', showAddEvidenceModal);
-    }
-    
-    if (cancelEvidenceBtn) {
-        cancelEvidenceBtn.addEventListener('click', hideAddEvidenceModal);
-    }
-    
-    if (addEvidenceForm) {
-        addEvidenceForm.addEventListener('submit', handleAddEvidence);
-    }
-    
-    // Set up file upload
-    setupFileUpload();
-    
-    // Load initial evidence
-    setTimeout(() => {
-        loadEvidence();
-    }, 1000);
-}
-
-// Make functions globally available
-window.showAddEvidenceModal = showAddEvidenceModal;
-window.hideAddEvidenceModal = hideAddEvidenceModal;
-window.handleAddEvidence = handleAddEvidence;
-window.loadEvidence = loadEvidence;
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    initializeEvidenceVault();
-});
-
-        // Safety Plan Functions
-        function addSafeLocation() {
-            const name = prompt('Enter safe location name:');
-            const address = prompt('Enter address:');
-            if (name && address) {
-                showAlert(`Safe location "${name}" added`);
-            }
+    async function handleEditProfile(event) {
+        event.preventDefault();
+        
+        if (!currentUser) {
+            showAlert('Please log in to edit profile', 'error');
+            return;
         }
-
-        function callNumber(number) {
-            alert(`Calling ${number}...\n\nIn a real app, this would dial the number.`);
-            // window.open(`tel:${number}`, '_self');
+        
+        const formData = {
+            name: document.getElementById('edit-name').value.trim(),
+            email: document.getElementById('edit-email').value.trim(),
+            phone: document.getElementById('edit-phone').value.trim()
+        };
+        
+        // Basic validation
+        if (!formData.name || !formData.email) {
+            showAlert('Name and email are required', 'error');
+            return;
         }
+        
+        try {
+            const token = localStorage.getItem('gbv_token');
+            const response = await fetch(`${API_BASE}/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
 
-        // Resources Functions
-        function viewShelters() {
-            alert('Showing safe houses and shelters in your area...');
-        }
+            const data = await response.json();
 
-        function viewLegalAid() {
-            alert('Connecting to legal aid services...');
-        }
-
-        function openResource(resource) {
-            const resources = {
-                'safety-planning': 'Safety Planning Guide opened...',
-                'legal-rights': 'Legal Rights information opened...',
-                'counseling': 'Counseling Services information opened...'
-            };
-            alert(resources[resource] || 'Resource opened...');
-        }
-
-        // Safe Chat Functions
-        function startCounselorChat() {
-            alert('Connecting to GBV counselor...\n\nThis would open a secure chat interface.');
-        }
-
-        function startLegalChat() {
-            alert('Connecting to legal advisor...\n\nThis would open a secure chat interface.');
-        }
-
-        function startSupportGroup() {
-            alert('Joining support group chat...\n\nThis would connect you with other survivors safely.');
-        }
-
-        // Profile Functions
-        function loadProfile() {
-            if (currentUser) {
-                document.getElementById('profile-name').textContent = currentUser.name;
-                document.getElementById('profile-email').textContent = currentUser.email;
-                document.getElementById('profile-phone').textContent = currentUser.phone;
-                document.getElementById('profile-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+            if (response.ok && data.success) {
+                // Update current user data
+                currentUser = data.user;
+                localStorage.setItem('gbv_user', JSON.stringify(currentUser));
                 
-                // Load stats
-                const contacts = JSON.parse(localStorage.getItem('gbv_contacts') || '[]');
-                const evidence = JSON.parse(localStorage.getItem('gbv_evidence') || '[]');
-                const alerts = JSON.parse(localStorage.getItem('gbv_alerts') || '[]');
+                // Update UI with new data and stats
+                document.getElementById('profile-name').textContent = data.user.name;
+                document.getElementById('profile-email').textContent = data.user.email;
+                document.getElementById('profile-phone').textContent = data.user.phone || 'Not provided';
+                document.getElementById('profile-avatar').textContent = data.user.name.charAt(0).toUpperCase();
                 
-                document.getElementById('trusted-contacts-count').textContent = contacts.length;
-                document.getElementById('evidence-items').textContent = evidence.length;
-                document.getElementById('alerts-sent').textContent = alerts.length;
+                // Update stats
+                document.getElementById('trusted-contacts-count').textContent = data.stats.trustedContacts;
+                document.getElementById('evidence-items').textContent = data.stats.evidenceItems;
+                document.getElementById('alerts-sent').textContent = data.stats.alertsSent;
+                
+                showAlert('Profile updated successfully', 'success');
+                document.getElementById('edit-profile-modal').classList.remove('active');
+            } else {
+                showAlert(data.message || 'Failed to update profile', 'error');
             }
+            
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            showAlert('Network error while updating profile', 'error');
         }
+    }
 
-        function editProfile() {
-            alert('Edit profile feature would open here.');
+    async function handleChangePassword(event) {
+        event.preventDefault();
+        
+        if (!currentUser) {
+            showAlert('Please log in to change password', 'error');
+            return;
         }
-
-        function changePassword() {
-            alert('Change password feature would open here.');
+        
+        const currentPassword = document.getElementById('current-password').value;
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        
+        // Validation
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            showAlert('All password fields are required', 'error');
+            return;
         }
-
-        function manageNotifications() {
-            alert('Notification settings would open here.');
+        
+        if (newPassword !== confirmPassword) {
+            showAlert('New passwords do not match', 'error');
+            return;
         }
-
-        function privacySettings() {
-            alert('Privacy and security settings would open here.');
+        
+        if (newPassword.length < 6) {
+            showAlert('Password must be at least 6 characters', 'error');
+            return;
         }
+        
+        try {
+            const token = localStorage.getItem('gbv_token');
+            const response = await fetch(`${API_BASE}/profile/password`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword
+                })
+            });
 
-        function manageSafeLocations() {
-            showScreen('safety');
-        }
+            const data = await response.json();
 
-        function manageEmergencyContacts() {
-            showScreen('contacts');
-        }
-
-        function setupSafeWord() {
-            const safeWord = prompt('Enter your safe word (used when speaking under duress):', 'bluebird');
-            if (safeWord) {
-                localStorage.setItem('gbv_safe_word', safeWord);
-                showAlert(`Safe word set to: ${safeWord}`);
+            if (response.ok && data.success) {
+                showAlert('Password changed successfully', 'success');
+                document.getElementById('change-password-modal').classList.remove('active');
+                
+                // Clear form
+                document.getElementById('change-password-form').reset();
+            } else {
+                showAlert(data.message || 'Failed to change password', 'error');
             }
+            
+        } catch (error) {
+            console.error('Error changing password:', error);
+            showAlert('Network error while changing password', 'error');
         }
+    }
 
-        // Recent Alerts
-        async function loadRecentAlerts() {
-            try {
-                const alerts = JSON.parse(localStorage.getItem('gbv_alerts') || '[]');
+    function manageNotifications() {
+        alert('Notification settings would open here.');
+    }
+
+    function privacySettings() {
+        alert('Privacy and security settings would open here.');
+    }
+
+    function manageSafeLocations() {
+        showScreen('safety');
+    }
+
+    function manageEmergencyContacts() {
+        showScreen('contacts');
+    }
+
+    function setupSafeWord() {
+        const safeWord = prompt('Enter your safe word (used when speaking under duress):', 'bluebird');
+        if (safeWord) {
+            localStorage.setItem('gbv_safe_word', safeWord);
+            showAlert(`Safe word set to: ${safeWord}`, 'success');
+        }
+    }
+
+    // Recent Alerts
+    async function loadRecentAlerts() {
+        try {
+            const token = localStorage.getItem('gbv_token');
+            const response = await fetch(`${API_BASE}/alerts/my-alerts`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const alerts = await response.json();
                 const alertsList = document.getElementById('alerts-list');
                 if (alerts.length > 0) {
                     alertsList.innerHTML = alerts.slice(0, 3).map(alert => `
@@ -2818,76 +2502,95 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     alertsList.innerHTML = '<p style="text-align: center; color: #666;">No recent alerts</p>';
                 }
-            } catch (error) {
-                console.error('Error loading alerts:', error);
-                document.getElementById('alerts-list').innerHTML = '<p style="text-align: center; color: red;">Error loading alerts</p>';
             }
+        } catch (error) {
+            console.error('Error loading alerts:', error);
         }
+    }
 
-        // Load user data
-        async function loadUserData() {
-            if (currentUser) {
-                document.getElementById('user-name').textContent = currentUser.name;
-                loadContacts();
-                loadEvidence();
-                loadRecentAlerts();
-                loadProfile();
-            }
+    // Load user data
+    async function loadUserData() {
+        if (currentUser) {
+            document.getElementById('user-name').textContent = currentUser.name;
+            loadContacts();
+            loadEvidence();
+            loadRecentAlerts();
+            loadProfile();
         }
+    }
 
-        // Fake Mode
-        function toggleFakeMode() {
-            const btn = document.getElementById('fake-mode-btn');
-            if (btn.textContent === 'Activate Calendar Mode') {
-                document.body.innerHTML = `
-                    <div style="padding: 2rem; text-align: center; background: white; min-height: 100vh; font-family: Arial, sans-serif;">
-                        <h2 style="color: #8B008B; margin-bottom: 2rem;">📅 Calendar - October 2023</h2>
-                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 2rem 0;">
-                            <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Sun</div>
-                            <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Mon</div>
-                            <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Tue</div>
-                            <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Wed</div>
-                            <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Thu</div>
-                            <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Fri</div>
-                            <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Sat</div>
-                            ${Array.from({length: 35}, (_, i) => 
-                                `<div style="padding: 12px; border: 1px solid #eee; border-radius: 5px; cursor: pointer; 
-                                    background: ${i >= 1 && i < 32 ? '#f9f9f9' : '#f5f5f5'}; 
-                                    color: ${i >= 1 && i < 32 ? '#333' : '#ccc'};">
-                                 ${i >= 1 && i < 32 ? i : ''}
-                                 </div>`
-                            ).join('')}
-                        </div>
-                        <p style="margin-top: 2rem; font-size: 0.9rem; color: #666;">
-                            📅 Regular Calendar App<br>
-                            <small>Tap and hold any date for 3 seconds to access safety features</small>
-                        </p>
-                        <button onclick="location.reload()" style="margin-top: 2rem; padding: 1rem 2rem; background: #8B008B; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                            Return to Safety App
-                        </button>
+    // Fake Mode
+    function toggleFakeMode() {
+        const btn = document.getElementById('fake-mode-btn');
+        if (btn.textContent === 'Activate Calendar Mode') {
+            document.body.innerHTML = `
+                <div style="padding: 2rem; text-align: center; background: white; min-height: 100vh; font-family: Arial, sans-serif;">
+                    <h2 style="color: #8B008B; margin-bottom: 2rem;">📅 Calendar - October 2023</h2>
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 2rem 0;">
+                        <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Sun</div>
+                        <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Mon</div>
+                        <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Tue</div>
+                        <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Wed</div>
+                        <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Thu</div>
+                        <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Fri</div>
+                        <div style="font-weight: bold; padding: 10px; background: #f0f0f0;">Sat</div>
+                        ${Array.from({length: 35}, (_, i) => 
+                            `<div style="padding: 12px; border: 1px solid #eee; border-radius: 5px; cursor: pointer; 
+                                background: ${i >= 1 && i < 32 ? '#f9f9f9' : '#f5f5f5'}; 
+                                color: ${i >= 1 && i < 32 ? '#333' : '#ccc'};">
+                             ${i >= 1 && i < 32 ? i : ''}
+                             </div>`
+                        ).join('')}
                     </div>
-                `;
-            }
+                    <p style="margin-top: 2rem; font-size: 0.9rem; color: #666;">
+                        📅 Regular Calendar App<br>
+                        <small>Tap and hold any date for 3 seconds to access safety features</small>
+                    </p>
+                    <button onclick="location.reload()" style="margin-top: 2rem; padding: 1rem 2rem; background: #8B008B; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        Return to Safety App
+                    </button>
+                </div>
+            `;
         }
+    }
 
-        // Make functions globally available
-        window.deleteContact = deleteContact;
-        window.addSafeLocation = addSafeLocation;
-        window.callNumber = callNumber;
-        window.viewShelters = viewShelters;
-        window.viewLegalAid = viewLegalAid;
-        window.openResource = openResource;
-        window.startCounselorChat = startCounselorChat;
-        window.startLegalChat = startLegalChat;
-        window.startSupportGroup = startSupportGroup;
-        window.editProfile = editProfile;
-        window.changePassword = changePassword;
-        window.manageNotifications = manageNotifications;
-        window.privacySettings = privacySettings;
-        window.manageSafeLocations = manageSafeLocations;
-        window.manageEmergencyContacts = manageEmergencyContacts;
-        window.setupSafeWord = setupSafeWord;
-        window.showAddEvidenceModal = showAddEvidenceModal;
+    // Resources Functions
+    function viewShelters() {
+        alert('Showing safe houses and shelters in your area...');
+    }
+
+    function viewLegalAid() {
+        alert('Connecting to legal aid services...');
+    }
+
+    function openResource(resource) {
+        const resources = {
+            'safety-planning': 'Safety Planning Guide opened...',
+            'legal-rights': 'Legal Rights information opened...',
+            'counseling': 'Counseling Services information opened...'
+        };
+        alert(resources[resource] || 'Resource opened...');
+    }
+
+    // Make functions globally available
+    window.deleteContact = deleteContact;
+    window.addSafeLocation = addSafeLocation;
+    window.callNumber = callNumber;
+    window.viewShelters = viewShelters;
+    window.viewLegalAid = viewLegalAid;
+    window.openResource = openResource;
+    window.startCounselorChat = startCounselorChat;
+    window.startLegalChat = startLegalChat;
+    window.startSupportGroup = startSupportGroup;
+    window.editProfile = editProfile;
+    window.changePassword = changePassword;
+    window.manageNotifications = manageNotifications;
+    window.privacySettings = privacySettings;
+    window.manageSafeLocations = manageSafeLocations;
+    window.manageEmergencyContacts = manageEmergencyContacts;
+    window.setupSafeWord = setupSafeWord;
+    window.showAddEvidenceModal = showAddEvidenceModal;
+    window.hideAddEvidenceModal = hideAddEvidenceModal;
     </script>
 
 </body>

@@ -46,6 +46,7 @@ mongoose.connect(MONGODB_URI, {
 require('./models/User');
 require('./models/Contact');
 require('./models/Alert');
+require('./models/Evidence');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -53,7 +54,7 @@ const alertRoutes = require('./routes/alerts');
 const contactRoutes = require('./routes/contacts');
 const contactAuthRoutes = require('./routes/contactAuth');
 const evidenceRoutes = require('./routes/evidence');
-const profileRoutes = require('./routes/profile');
+const profileRoutes = require('./routes/profile'); // Make sure this exists
 const resourceRoutes = require('./routes/resources');
 const chatRoutes = require('./routes/chats');
 
@@ -63,7 +64,7 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/contact-auth', contactAuthRoutes);
 app.use('/api/evidence', evidenceRoutes);
-app.use('/api/profile', profileRoutes);
+app.use('/api/profile', profileRoutes); 
 app.use('/api/resources', resourceRoutes);
 app.use('/api/chats', chatRoutes);
 
@@ -232,6 +233,15 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('❌ Error handling alert status update:', error);
     }
+  });
+
+  // Profile update notification
+  socket.on('profile-updated', (userData) => {
+    console.log('👤 Profile updated:', userData);
+    socket.to(`user_${userData.userId}`).emit('profile-update-notification', {
+      message: 'Profile updated successfully',
+      user: userData
+    });
   });
 
   // Contact alert update

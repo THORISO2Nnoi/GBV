@@ -24,6 +24,7 @@ const screens = {
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     checkExistingAuth();
+    initializeModals();
 });
 
 function initializeEventListeners() {
@@ -74,6 +75,29 @@ function initializeEventListeners() {
     
     // Fake mode
     document.getElementById('fake-mode-btn').addEventListener('click', toggleFakeMode);
+}
+
+function initializeModals() {
+    // Profile modals
+    document.getElementById('edit-profile-form').addEventListener('submit', handleEditProfile);
+    document.getElementById('change-password-form').addEventListener('submit', handleChangePassword);
+    
+    // Close modal buttons
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) modal.classList.remove('active');
+        });
+    });
+    
+    // Close modals when clicking outside
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+    });
 }
 
 function checkExistingAuth() {
@@ -249,25 +273,16 @@ function initializeSocket() {
     });
 }
 
-function showAlert(message) {
+function showAlert(message, type = 'success') {
     const alertDiv = document.createElement('div');
-    alertDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #4CAF50;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 5px;
-        z-index: 1000;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        max-width: 300px;
-    `;
+    alertDiv.className = `notification ${type}`;
     alertDiv.textContent = message;
     document.body.appendChild(alertDiv);
     
     setTimeout(() => {
-        document.body.removeChild(alertDiv);
+        if (document.body.contains(alertDiv)) {
+            document.body.removeChild(alertDiv);
+        }
     }, 5000);
 }
 
@@ -643,24 +658,165 @@ async function loadProfile() {
 
             document.getElementById('profile-name').textContent = user.name;
             document.getElementById('profile-email').textContent = user.email;
-            document.getElementById('profile-phone').textContent = user.phone;
+            document.getElementById('profile-phone').textContent = user.phone || 'Not provided';
             document.getElementById('profile-avatar').textContent = user.name.charAt(0).toUpperCase();
             
             document.getElementById('trusted-contacts-count').textContent = stats.trustedContacts;
             document.getElementById('evidence-items').textContent = stats.evidenceItems;
             document.getElementById('alerts-sent').textContent = stats.alertsSent;
+
+            // Update current user data
+            currentUser = user;
+            localStorage.setItem('gbv_user', JSON.stringify(user));
         }
     } catch (error) {
         console.error('Error loading profile:', error);
+        showAlert('Error loading profile data', 'error');
     }
 }
 
 function editProfile() {
-    alert('Edit profile feature would open here.');
+    if (!currentUser) {
+        showAlert('Please log in to edit profile', 'error');
+        return;
+    }
+    
+    // Populate form with current data
+    document.getElementById('edit-name').value = currentUser.name;
+    document.getElementById('edit-email').value = currentUser.email;
+    document.getElementById('edit-phone').value = currentUser.phone || '';
+    
+    // Show modal
+    document.getElementById('edit-profile-modal').classList.add('active');
 }
 
 function changePassword() {
-    alert('Change password feature would open here.');
+    // Clear password form
+    document.getElementById('change-password-form').reset();
+    
+    // Show modal
+    document.getElementById('change-password-modal').classList.add('active');
+}
+
+async function handleEditProfile(event) {
+    event.preventDefault();
+    
+    if (!currentUser) {
+        showAlert('Please log in to edit profile', 'error');
+        return;
+    }
+    
+    const formData = {
+        name: document.getElementById('edit-name').value.trim(),
+        email: document.getElementById('edit-email').value.trim(),
+        phone: document.getElementById('edit-phone').value.trim()
+    };
+    
+    // Basic validation
+    if (!formData.name || !formData.email) {
+        showAlert('Name and email are required', 'error');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('gbv_token');
+        const response = await fetch(`${API_BASE}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            // Update current user data
+            currentUser = data.user;
+            localStorage.setItem('gbv_user', JSON.stringify(currentUser));
+            
+            // Update UI with new data and stats
+            document.getElementById('profile-name').textContent = data.user.name;
+            document.getElementById('profile-email').textContent = data.user.email;
+            document.getElementById('profile-phone').textContent = data.user.phone || 'Not provided';
+            document.getElementById('profile-avatar').textContent = data.user.name.charAt(0).toUpperCase();
+            
+            // Update stats
+            document.getElementById('trusted-contacts-count').textContent = data.stats.trustedContacts;
+            document.getElementById('evidence-items').textContent = data.stats.evidenceItems;
+            document.getElementById('alerts-sent').textContent = data.stats.alertsSent;
+            
+            showAlert('Profile updated successfully', 'success');
+            document.getElementById('edit-profile-modal').classList.remove('active');
+        } else {
+            showAlert(data.message || 'Failed to update profile', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        showAlert('Network error while updating profile', 'error');
+    }
+}
+
+async function handleChangePassword(event) {
+    event.preventDefault();
+    
+    if (!currentUser) {
+        showAlert('Please log in to change password', 'error');
+        return;
+    }
+    
+    const currentPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+    
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showAlert('All password fields are required', 'error');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        showAlert('New passwords do not match', 'error');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        showAlert('Password must be at least 6 characters', 'error');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('gbv_token');
+        const response = await fetch(`${API_BASE}/profile/password`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                currentPassword,
+                newPassword
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showAlert('Password changed successfully', 'success');
+            document.getElementById('change-password-modal').classList.remove('active');
+            
+            // Clear form
+            document.getElementById('change-password-form').reset();
+        } else {
+            showAlert(data.message || 'Failed to change password', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error changing password:', error);
+        showAlert('Network error while changing password', 'error');
+    }
 }
 
 function privacySettings() {
