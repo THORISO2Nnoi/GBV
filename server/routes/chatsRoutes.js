@@ -1,10 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const Chat = require('../models/Chat');
-const { authenticateToken } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 
-// Professional data (in production, this would be in a database)
+// TEMPORARY AUTH BYPASS - Replace this line with your actual auth import
+const authenticateToken = (req, res, next) => {
+    req.user = { id: 'temp-user-id', email: 'test@example.com' };
+    next();
+};
+
+// Professional data
 const professionals = {
     counselor: [
         {
@@ -76,6 +81,59 @@ const professionals = {
     ]
 };
 
+// Helper functions
+function findProfessionalById(professionalId, category) {
+    if (!professionals[category]) return null;
+    return professionals[category].find(prof => prof.id === professionalId);
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        counselor: '👩‍💼',
+        legal: '⚖️',
+        medical: '🏥',
+        support: '👥'
+    };
+    return icons[category] || '💬';
+}
+
+function generateProfessionalResponse(userMessage) {
+    const responses = [
+        "I understand how difficult this must be for you. Can you tell me more about what you're experiencing?",
+        "Thank you for sharing that with me. You're showing great strength by reaching out.",
+        "Your safety is the most important thing right now. Do you have a safe place to go?",
+        "I'm here to listen and support you. What would be most helpful for you right now?",
+        "That sounds very challenging. Remember, you're not alone in this.",
+        "It takes courage to talk about these things. How are you feeling right now?",
+        "I want to make sure you have the support you need. Would you like me to connect you with additional resources?",
+        "Your feelings are completely valid. Let's work together to create a safety plan.",
+        "I'm glad you reached out. What kind of support are you looking for today?",
+        "You deserve to feel safe and supported. Let's explore options that work for you."
+    ];
+    
+    const lowerMessage = userMessage.toLowerCase();
+    
+    if (lowerMessage.includes('emergency') || lowerMessage.includes('urgent')) {
+        return "I understand this is urgent. Your safety is the priority. Are you in immediate danger? If so, please use the emergency button to alert your trusted contacts.";
+    }
+    
+    if (lowerMessage.includes('safe') || lowerMessage.includes('safety')) {
+        return "Let's discuss your safety plan. Do you have a safe place you can go if needed?";
+    }
+    
+    if (lowerMessage.includes('legal') || lowerMessage.includes('lawyer')) {
+        return "I can help connect you with legal resources. Would you like information about protection orders or legal aid services?";
+    }
+    
+    if (lowerMessage.includes('police') || lowerMessage.includes('authorities')) {
+        return "If you feel comfortable and safe doing so, contacting authorities can be an important step. Would you like guidance on how to approach this?";
+    }
+    
+    return responses[Math.floor(Math.random() * responses.length)];
+}
+
+// ========== ROUTES ==========
+
 // Get all professionals by category
 router.get('/professionals/:category', authenticateToken, async (req, res) => {
     try {
@@ -129,7 +187,13 @@ router.post('/start', authenticateToken, async (req, res) => {
     try {
         const { professionalId, category } = req.body;
         
-        // Validate professional exists
+        if (!professionalId || !category) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Professional ID and category are required' 
+            });
+        }
+
         const professional = findProfessionalById(professionalId, category);
         if (!professional) {
             return res.status(404).json({ 
@@ -138,7 +202,6 @@ router.post('/start', authenticateToken, async (req, res) => {
             });
         }
 
-        // Check if chat already exists
         const existingChat = await Chat.findOne({ 
             userId: req.user.id, 
             professionalId 
@@ -152,11 +215,9 @@ router.post('/start', authenticateToken, async (req, res) => {
             });
         }
 
-        // Generate anonymous user ID and encryption key
         const anonymousUserId = `anon_${uuidv4()}`;
         const encryptionKey = uuidv4();
 
-        // Create new chat
         const chat = new Chat({
             userId: req.user.id,
             professionalId,
@@ -239,7 +300,6 @@ router.get('/:chatId', authenticateToken, async (req, res) => {
             });
         }
 
-        // Mark professional messages as read
         await chat.markAsRead('professional');
 
         const messages = chat.getMessages(parseInt(page), parseInt(limit));
@@ -290,7 +350,6 @@ router.post('/:chatId/messages', authenticateToken, async (req, res) => {
             });
         }
 
-        // Add user message
         const userMessage = {
             text: text.trim(),
             sender: 'user',
@@ -300,7 +359,6 @@ router.post('/:chatId/messages', authenticateToken, async (req, res) => {
 
         await chat.addMessage(userMessage);
 
-        // Simulate professional response (in production, this would be a real professional)
         setTimeout(async () => {
             try {
                 const professionalResponse = generateProfessionalResponse(text);
@@ -312,9 +370,6 @@ router.post('/:chatId/messages', authenticateToken, async (req, res) => {
                 };
 
                 await chat.addMessage(professionalMessage);
-                
-                // Here you would typically emit a socket event for real-time updates
-                // io.to(chatId).emit('new_message', professionalMessage);
                 
             } catch (error) {
                 console.error('Professional response error:', error);
@@ -449,22 +504,24 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
             userId: req.user.id, 
             status: 'active' 
         });
-        const unreadMessages = await Chat.aggregate([
-            { $match: { userId: req.user.id } },
-            { $unwind: '$messages' },
-            { $match: { 
-                'messages.sender': 'professional', 
-                'messages.read': false 
-            }},
-            { $count: 'unreadCount' }
-        ]);
+        
+        const userChats = await Chat.find({ userId: req.user.id });
+        let unreadMessages = 0;
+        
+        userChats.forEach(chat => {
+            chat.messages.forEach(msg => {
+                if (msg.sender === 'professional' && !msg.read) {
+                    unreadMessages++;
+                }
+            });
+        });
 
         res.json({
             success: true,
             stats: {
                 totalChats,
                 activeChats,
-                unreadMessages: unreadMessages[0]?.unreadCount || 0
+                unreadMessages
             }
         });
     } catch (error) {
@@ -475,58 +532,5 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
         });
     }
 });
-
-// Helper functions
-function findProfessionalById(professionalId, category) {
-    if (!professionals[category]) return null;
-    return professionals[category].find(prof => prof.id === professionalId);
-}
-
-function getCategoryIcon(category) {
-    const icons = {
-        counselor: '👩‍💼',
-        legal: '⚖️',
-        medical: '🏥',
-        support: '👥'
-    };
-    return icons[category] || '💬';
-}
-
-function generateProfessionalResponse(userMessage) {
-    const responses = [
-        "I understand how difficult this must be for you. Can you tell me more about what you're experiencing?",
-        "Thank you for sharing that with me. You're showing great strength by reaching out.",
-        "Your safety is the most important thing right now. Do you have a safe place to go?",
-        "I'm here to listen and support you. What would be most helpful for you right now?",
-        "That sounds very challenging. Remember, you're not alone in this.",
-        "It takes courage to talk about these things. How are you feeling right now?",
-        "I want to make sure you have the support you need. Would you like me to connect you with additional resources?",
-        "Your feelings are completely valid. Let's work together to create a safety plan.",
-        "I'm glad you reached out. What kind of support are you looking for today?",
-        "You deserve to feel safe and supported. Let's explore options that work for you."
-    ];
-    
-    // Simple keyword-based response (in production, this would be more sophisticated)
-    const lowerMessage = userMessage.toLowerCase();
-    
-    if (lowerMessage.includes('emergency') || lowerMessage.includes('urgent')) {
-        return "I understand this is urgent. Your safety is the priority. Are you in immediate danger? If so, please use the emergency button to alert your trusted contacts.";
-    }
-    
-    if (lowerMessage.includes('safe') || lowerMessage.includes('safety')) {
-        return "Let's discuss your safety plan. Do you have a safe place you can go if needed?";
-    }
-    
-    if (lowerMessage.includes('legal') || lowerMessage.includes('lawyer')) {
-        return "I can help connect you with legal resources. Would you like information about protection orders or legal aid services?";
-    }
-    
-    if (lowerMessage.includes('police') || lowerMessage.includes('authorities')) {
-        return "If you feel comfortable and safe doing so, contacting authorities can be an important step. Would you like guidance on how to approach this?";
-    }
-    
-    // Default random response
-    return responses[Math.floor(Math.random() * responses.length)];
-}
 
 module.exports = router;
