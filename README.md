@@ -2,6 +2,8 @@
 
 A comprehensive Gender-Based Violence support system with real-time emergency alerts and trusted contact coordination.
 
+**Live Demo:** [gbv-kappa.vercel.app](https://gbv-kappa.vercel.app)
+
 ## Features
 
 ### For Users:
